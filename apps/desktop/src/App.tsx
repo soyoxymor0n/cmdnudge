@@ -708,7 +708,7 @@ function SettingsView(p: { status: Status; settings: Settings; save: (s: Partial
       <section className="card">
         <h2>What is stored</h2>
         <p className="muted small">
-          One SQLite file in ~/Library/Application Support/com.cmdnudge.app. These are all of its rows. Nothing is sent anywhere.
+          One SQLite file in ~/Library/Application Support/com.cmdnudge.app. These are all of its rows. Nothing is sent anywhere unless you switch on one of the syncs above, and then only these counters.
         </p>
         <div className="row">
           <button className="btn" onClick={() => api.raw().then(setRaw)}>{raw ? "Refresh" : "Show the raw rows"}</button>

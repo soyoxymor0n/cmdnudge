@@ -16,7 +16,7 @@ use std::sync::Mutex;
 
 pub const FORMAT: &str = "cmdnudge-counters/1";
 /// hosted_sync's error when the server no longer knows the link token.
-pub const SIGNED_OUT: &str = "signed out: connect again";
+pub const SIGNED_OUT: &str = "You were signed out. Sign in again to keep syncing.";
 pub const SUBDIR: &str = "cmdnudge-sync";
 const MAX_FILE_BYTES: u64 = 2 * 1024 * 1024;
 const MAX_ROWS: usize = 20_000;
