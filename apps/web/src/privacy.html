@@ -58,7 +58,12 @@
       <p>If you choose a sync folder in settings (“Your other computers”), the app writes one file there with this Mac's counters: app family, action, kind (habit or Mac way), count, and the first and last day it happened. No keys, no text, no times of day. Each computer reads the other computers' files and adds their counts to your totals. Where that file travels depends on the folder you picked: in iCloud Drive or Dropbox it is stored by that service under your own account with them, not by us. Turning file sync off stops writing; “Remove their counts” deletes the other computers' rows from this Mac.</p>
 
       <h2>Accounts and sign-in</h2>
-      <p>This version has no account and no sign-in.</p>
+      <p>This version has no account and no sign-in. The app has a “Sync with an account” option, but it is not open yet: its button stays disabled and the app sends nothing for it. Before it opens, this section will name the sign-in methods and the services that store the data, and the date at the top will move.</p>
+      <p>What account sync is built to store, so you can judge it in advance:</p>
+      <div class="card"><b>Your account.</b> The sign-in service's user id for you, and what that service needs to sign you in (for example your email address).</div>
+      <div class="card"><b>A key per linked computer.</b> When you sign in from the app, the app gets a random key for syncing. We keep only a fingerprint of it (a SHA-256 hash), never the key itself. “Sign out” in the app deletes it.</div>
+      <div class="card"><b>The same counters as folder sync.</b> Per computer: a random device id, “mac” or “win”, and for each known shortcut the app family, action, kind, count, and the first and last day. Plus the day each computer last synced. No keys you pressed, no text, no times of day, no app or window names.</div>
+      <p>Deleting your account removes all of it at once: counters, computers and keys. A computer's counters can only ever be written by the account that first synced it.</p>
 
       <h2>Who this is for</h2>
       <p>cmdnudge is meant for people aged 16 and over.</p>
