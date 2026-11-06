@@ -14,7 +14,7 @@ issues (`built` label = committed). Decisions waiting on the owner: issues label
 | `apps/desktop` sync | #16: export/import + file sync (`src-tauri/src/sync.rs`). One `<device>.json` per computer in `<folder>/cmdnudge-sync/`, rows summed per device (D3), every file validated against the library. Settings → "Your other computers". |
 | `apps/desktop` menu tips | #19, experimental, off by default (`menu_tips.rs`, `mac/menus.rs`): AX observer, tip on the third mouse pick of a menu item with a shortcut. Unit-tested and running without errors; **not yet seen working on real menus** (the screen was locked during the night build) — switch it on in Settings → Learning mode and pick e.g. Finder → Go → Home three times. |
 | `apps/desktop` Windows recorder | #17: `win_recorder.rs` (platform-free: virtual key → chord, exe → family, chord → library action) and `win/mod.rs` (cfg(windows): `WH_KEYBOARD_LL` hook, counts `win_use`, no toast). Counts reach the Mac through file sync; the Mac's "Still costing you" list then orders by Windows usage. Compiles for `x86_64-pc-windows-msvc` (checked locally in isolation) and the CI `windows` job builds and tests the whole app on Windows. **Never run on a real Windows machine yet**, and there is no Windows installer (#25 signing). |
-| `apps/web/api` + `server` hosted sync | #18: `api/sync.mjs` (POST/DELETE, 503 until env is set) → `server/sync.mjs` (validation, per-account device ownership, merge, delete account) on `server/turso-http.mjs` (Turso HTTP, no deps) with `server/clerk-token.mjs` (offline RS256 check of Clerk session tokens). Tested on node:sqlite through a Hrana stand-in, incl. cross-account and forged-token negative tests. App side: `sync::hosted_sync` (HTTP call) + `sync::apply_hosted`. **Not live**: no Vercel project, Turso DB, Clerk instance, sign-in flow or Settings UI yet. Contract: `docs/setup/03-architecture.md`. |
+| hosted sync (account) | #18, all code done, not live. Web: `api/sync.mjs` + `api/link.mjs` (503 until env is set) → `server/sync.mjs` (validation, device ownership, merge, delete account), `server/link.mjs` (revocable link tokens, SHA-256 stored), `server/turso-http.mjs`, `server/clerk-token.mjs`; sign-in page `src/connect.html`. App: Settings → "Sync with an account" (disabled until the server answers), `hosted.rs` (state-checked `cmdnudge://link` deep link), `sync::hosted_sync`. Verified with the installed app against a local server built from the real handlers. Contract: `docs/setup/03-architecture.md`. |
 | `.github/workflows` | `ci.yml` (tests on every push) and `release.yml` (#20: tag `v*` → universal DMG + SHA256SUMS → draft release; signs + notarizes once the Apple secrets from #23 exist). Universal build verified locally. |
 | `apps/web` | cmdnudge.com: static, zero-dependency. `node build.mjs` → `dist/`. Uses the real library.json + chord.mjs; pastes `is_key_combo` from filter.rs into the privacy section. Privacy + imprint pages. |
 
@@ -43,7 +43,7 @@ issues (`built` label = committed). Decisions waiting on the owner: issues label
 3. #20 finishes with the first notarized tag after #23. #17: run `npm run tauri dev` in
    `apps/desktop` on a Windows machine, point Settings → Your other computers at a OneDrive/Dropbox
    folder shared with the Mac, press Ctrl+C a few times, sync both; the Mac's raw rows show
-   `win_use`. #18: after #22 and Open-4, create Turso `cmdnudge` + `cmdnudge-preview` and a Clerk
-   instance, set `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `CLERK_JWT_KEY` per Vercel environment,
-   then build the sign-in hand-off (system browser → deep link with the session token) and the
-   Settings switch that calls `sync::hosted_sync`.
+   `win_use`. #18 goes live without new code: after #22 and Open-4, create Turso `cmdnudge` +
+   `cmdnudge-preview` and a Clerk instance (allow `https://cmdnudge.com/connect` as redirect), set
+   `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `CLERK_JWT_KEY`, `CLERK_PUBLISHABLE_KEY` per Vercel
+   environment, and add an "Account sync" section to the privacy page (it says there is no account).
