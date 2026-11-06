@@ -1,4 +1,5 @@
-# Checks every push and pull request: habit map, Rust core (filter, matcher, sync), desktop UI types, website build.
+# Checks every push and pull request: habit map, Rust core (filter, matcher, sync), desktop UI types,
+# website build, and the Windows recorder (#17) compiled and tested on Windows.
 name: ci
 
 on:
@@ -44,6 +45,30 @@ jobs:
         with:
           workspaces: apps/desktop/src-tauri
       - name: UI type check and build
+        working-directory: apps/desktop
+        run: |
+          npm ci
+          npm run build
+      - name: Rust tests
+        working-directory: apps/desktop/src-tauri
+        run: cargo test --locked
+
+  windows:
+    # The Windows recorder (#17): builds the app for Windows and runs the Rust tests there
+    # (chord mapping, family lookup, sync), so the cfg(windows) hook code cannot rot unseen.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+      - name: UI build
         working-directory: apps/desktop
         run: |
           npm ci

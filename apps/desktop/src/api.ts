@@ -33,7 +33,9 @@ export interface Status {
 }
 export interface ActionStats {
   actionId: string; label: string; category: string; misses: number; correct: number;
-  lastMissDay: string | null; mastered: boolean; topFamily: string; windows: string; mac: string;
+  lastMissDay: string | null; mastered: boolean;
+  /** Presses on synced Windows computers (#17). */
+  winUses: number; topFamily: string; windows: string; mac: string;
 }
 export interface DailyRow { day: string; app_family: string; kind: string; count: number }
 export interface Stats { actions: ActionStats[]; daily: DailyRow[]; today: string }

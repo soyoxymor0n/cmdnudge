@@ -282,7 +282,13 @@ function layoutName(l: string) {
 function StatsView({ status }: { status: Status }) {
   const [stats] = useLive<Stats>(api.stats, 3000);
   if (!stats) return null;
-  const costing = stats.actions.filter((a) => a.misses > 0 && !a.mastered).sort((a, b) => b.misses - a.misses).slice(0, 10);
+  // Once a Windows computer syncs its counts (#17), the habits it really uses most come first:
+  // those are the ones the hands keep bringing over.
+  const fromWindows = stats.actions.some((a) => a.winUses > 0);
+  const costing = stats.actions
+    .filter((a) => a.misses > 0 && !a.mastered)
+    .sort((a, b) => (fromWindows ? b.winUses - a.winUses : 0) || b.misses - a.misses)
+    .slice(0, 10);
   const mastered = stats.actions.filter((a) => a.mastered);
   const today = stats.daily.filter((d) => d.day === stats.today);
   const missesToday = today.filter((d) => d.kind === "habit_miss").reduce((s, d) => s + d.count, 0);
@@ -317,6 +323,9 @@ function StatsView({ status }: { status: Status }) {
         <>
           <section className="card">
             <h2>Still costing you</h2>
+            {fromWindows && costing.length > 0 && (
+              <p className="muted">Ordered by how often your Windows computer uses each one.</p>
+            )}
             {costing.length === 0 ? (
               <p className="muted">No open habits. Everything you slipped on is mastered.</p>
             ) : (
@@ -329,6 +338,7 @@ function StatsView({ status }: { status: Status }) {
                     <span className="habit-label">
                       {a.label}
                       {a.topFamily && a.topFamily !== "Any app" && <em>{a.topFamily}</em>}
+                      {a.winUses > 0 && <em title="Presses on your Windows computer">{a.winUses}× on Windows</em>}
                     </span>
                     <span className="habit-count" title="Times the Windows habit slipped">{a.misses}×</span>
                     <span className="meter" title={`${a.correct} of 10 correct uses to master`}>
