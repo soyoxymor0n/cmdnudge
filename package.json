@@ -1,0 +1,11 @@
+{
+  "name": "cmdnudge",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "library": "node packages/library/tools/generate.mjs",
+    "library:check": "node packages/library/tools/check.mjs",
+    "test": "node --test packages/library/test/ && npm run library:check"
+  }
+}

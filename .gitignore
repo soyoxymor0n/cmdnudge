@@ -1,0 +1,9 @@
+node_modules/
+target/
+dist-app/
+.DS_Store
+*.log
+.vercel
+.env*
+apps/desktop/dist/
+apps/web/public/

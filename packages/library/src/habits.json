@@ -1,0 +1,1219 @@
+{
+ "note": "Authored data. Each habit is a Windows shortcut (as pressed on a Windows keyboard) and the Mac way to do the same action. tools/generate.mjs derives how each habit physically arrives on a Mac, per layout x keyboard type (docs/setup/08). 'mac' may list several correct Mac chords; the first is the one we teach.",
+ "verifiedOn": "2026-11-06",
+ "sources": {
+  "mac": "https://support.apple.com/en-us/102650",
+  "mac-screenshot": "https://support.apple.com/en-us/102646",
+  "mac-rename": "https://support.apple.com/guide/mac-help/rename-files-folders-and-disks-mchlp1144/mac",
+  "chrome": "https://support.google.com/chrome/answer/157179?co=GENIE.Platform%3DDesktop&hl=en",
+  "win": "https://support.microsoft.com/en-us/windows/keyboard-shortcuts-in-windows-dcc61a57-8ff0-cffe-9796-cb9706c75eec",
+  "chrome-win": "https://support.google.com/chrome/answer/157179?co=GENIE.Platform%3DDesktop&hl=en",
+  "layout": "measured: Mac Mouse Fix NG docs/features/shortcut-research/data/layouts-us-de-at.tsv (layoutdump.swift, UCKeyTranslate on com.apple.keylayout.German and .Austrian)"
+ },
+ "habits": [
+  {
+   "id": "copy",
+   "action": "edit.copy",
+   "label": "Copy",
+   "category": "edit",
+   "family": "system",
+   "windows": "ctrl+c",
+   "mac": [
+    "cmd+c"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "paste",
+   "action": "edit.paste",
+   "label": "Paste",
+   "category": "edit",
+   "family": "system",
+   "windows": "ctrl+v",
+   "mac": [
+    "cmd+v"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "cut",
+   "action": "edit.cut",
+   "label": "Cut",
+   "category": "edit",
+   "family": "system",
+   "windows": "ctrl+x",
+   "mac": [
+    "cmd+x"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "undo",
+   "action": "edit.undo",
+   "label": "Undo",
+   "category": "edit",
+   "family": "system",
+   "windows": "ctrl+z",
+   "mac": [
+    "cmd+z"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "redo",
+   "action": "edit.redo",
+   "label": "Redo",
+   "category": "edit",
+   "family": "system",
+   "windows": "ctrl+y",
+   "mac": [
+    "cmd+shift+z"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "select-all",
+   "action": "edit.select-all",
+   "label": "Select all",
+   "category": "edit",
+   "family": "system",
+   "windows": "ctrl+a",
+   "mac": [
+    "cmd+a"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "find",
+   "action": "edit.find",
+   "label": "Find",
+   "category": "edit",
+   "family": "system",
+   "windows": "ctrl+f",
+   "mac": [
+    "cmd+f"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "save",
+   "action": "file.save",
+   "label": "Save",
+   "category": "file",
+   "family": "system",
+   "windows": "ctrl+s",
+   "mac": [
+    "cmd+s"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "save-as",
+   "action": "file.save-as",
+   "label": "Save as",
+   "category": "file",
+   "family": "system",
+   "windows": "ctrl+shift+s",
+   "mac": [
+    "cmd+shift+s"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "print",
+   "action": "file.print",
+   "label": "Print",
+   "category": "file",
+   "family": "system",
+   "windows": "ctrl+p",
+   "mac": [
+    "cmd+p"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "new",
+   "action": "file.new",
+   "label": "New document or window",
+   "category": "file",
+   "family": "system",
+   "windows": "ctrl+n",
+   "mac": [
+    "cmd+n"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "open",
+   "action": "file.open",
+   "label": "Open",
+   "category": "file",
+   "family": "system",
+   "windows": "ctrl+o",
+   "mac": [
+    "cmd+o"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "close",
+   "action": "window.close",
+   "label": "Close tab or window",
+   "category": "window",
+   "family": "system",
+   "windows": "ctrl+w",
+   "mac": [
+    "cmd+w"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "bold",
+   "action": "format.bold",
+   "label": "Bold",
+   "category": "format",
+   "family": "system",
+   "windows": "ctrl+b",
+   "mac": [
+    "cmd+b"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "italic",
+   "action": "format.italic",
+   "label": "Italic",
+   "category": "format",
+   "family": "system",
+   "windows": "ctrl+i",
+   "mac": [
+    "cmd+i"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "underline",
+   "action": "format.underline",
+   "label": "Underline",
+   "category": "format",
+   "family": "system",
+   "windows": "ctrl+u",
+   "mac": [
+    "cmd+u"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "word-left",
+   "action": "text.word-left",
+   "label": "Previous word",
+   "category": "text",
+   "family": "system",
+   "windows": "ctrl+left",
+   "mac": [
+    "opt+left"
+   ],
+   "src": "mac",
+   "winSrc": "win",
+   "note": "⌃← switches Spaces on a Mac."
+  },
+  {
+   "id": "word-right",
+   "action": "text.word-right",
+   "label": "Next word",
+   "category": "text",
+   "family": "system",
+   "windows": "ctrl+right",
+   "mac": [
+    "opt+right"
+   ],
+   "src": "mac",
+   "winSrc": "win",
+   "note": "⌃→ switches Spaces on a Mac."
+  },
+  {
+   "id": "select-word-left",
+   "action": "text.select-word-left",
+   "label": "Select previous word",
+   "category": "text",
+   "family": "system",
+   "windows": "ctrl+shift+left",
+   "mac": [
+    "opt+shift+left"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "select-word-right",
+   "action": "text.select-word-right",
+   "label": "Select next word",
+   "category": "text",
+   "family": "system",
+   "windows": "ctrl+shift+right",
+   "mac": [
+    "opt+shift+right"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "delete-word",
+   "action": "text.delete-word",
+   "label": "Delete previous word",
+   "category": "text",
+   "family": "system",
+   "windows": "ctrl+backspace",
+   "mac": [
+    "opt+backspace"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "delete-word-forward",
+   "action": "text.delete-word-forward",
+   "label": "Delete next word",
+   "category": "text",
+   "family": "system",
+   "windows": "ctrl+fwddelete",
+   "mac": [
+    "opt+fwddelete"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "line-start",
+   "action": "text.line-start",
+   "label": "Start of line",
+   "category": "text",
+   "family": "system",
+   "windows": "home",
+   "mac": [
+    "cmd+left"
+   ],
+   "src": "mac",
+   "winSrc": "win",
+   "note": "Home alone scrolls the document on a Mac."
+  },
+  {
+   "id": "line-end",
+   "action": "text.line-end",
+   "label": "End of line",
+   "category": "text",
+   "family": "system",
+   "windows": "end",
+   "mac": [
+    "cmd+right"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "select-line-start",
+   "action": "text.select-line-start",
+   "label": "Select to start of line",
+   "category": "text",
+   "family": "system",
+   "windows": "shift+home",
+   "mac": [
+    "cmd+shift+left"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "select-line-end",
+   "action": "text.select-line-end",
+   "label": "Select to end of line",
+   "category": "text",
+   "family": "system",
+   "windows": "shift+end",
+   "mac": [
+    "cmd+shift+right"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "doc-start",
+   "action": "text.doc-start",
+   "label": "Start of document",
+   "category": "text",
+   "family": "system",
+   "windows": "ctrl+home",
+   "mac": [
+    "cmd+up"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "doc-end",
+   "action": "text.doc-end",
+   "label": "End of document",
+   "category": "text",
+   "family": "system",
+   "windows": "ctrl+end",
+   "mac": [
+    "cmd+down"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "close-app",
+   "action": "app.quit",
+   "label": "Quit the app (⌘W closes one window)",
+   "category": "window",
+   "family": "system",
+   "windows": "alt+f4",
+   "mac": [
+    "cmd+q"
+   ],
+   "src": "mac",
+   "winSrc": "win",
+   "teachOnly": true
+  },
+  {
+   "id": "switch-app",
+   "action": "app.switch",
+   "label": "Switch app",
+   "category": "window",
+   "family": "system",
+   "windows": "alt+tab",
+   "mac": [
+    "cmd+tab"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "switch-app-back",
+   "action": "app.switch-back",
+   "label": "Switch app, backwards",
+   "category": "window",
+   "family": "system",
+   "windows": "alt+shift+tab",
+   "mac": [
+    "cmd+shift+tab"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "minimize",
+   "action": "window.minimize",
+   "label": "Minimize window",
+   "category": "window",
+   "family": "system",
+   "windows": "win+down",
+   "mac": [
+    "cmd+m"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "minimize-all",
+   "action": "window.minimize-all",
+   "label": "Minimize all windows of the app",
+   "category": "window",
+   "family": "system",
+   "windows": "win+m",
+   "mac": [
+    "opt+cmd+m"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "show-desktop",
+   "action": "system.show-desktop",
+   "label": "Show the desktop",
+   "category": "system",
+   "family": "system",
+   "windows": "win+d",
+   "mac": [
+    "f11"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "task-view",
+   "action": "system.mission-control",
+   "label": "Mission Control (all windows)",
+   "category": "system",
+   "family": "system",
+   "windows": "win+tab",
+   "mac": [
+    "ctrl+up"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "explorer",
+   "action": "files.new-window",
+   "label": "Open a Finder window",
+   "category": "system",
+   "family": "system",
+   "windows": "win+e",
+   "mac": [
+    "opt+cmd+space"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "run",
+   "action": "system.spotlight",
+   "label": "Spotlight (search, open apps)",
+   "category": "system",
+   "family": "system",
+   "windows": "win+r",
+   "mac": [
+    "cmd+space"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "search",
+   "action": "system.spotlight",
+   "label": "Spotlight (search, open apps)",
+   "category": "system",
+   "family": "system",
+   "windows": "win+s",
+   "mac": [
+    "cmd+space"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "snip",
+   "action": "system.screenshot.area",
+   "label": "Screenshot of an area",
+   "category": "system",
+   "family": "system",
+   "windows": "win+shift+s",
+   "mac": [
+    "cmd+shift+4",
+    "cmd+shift+5"
+   ],
+   "src": "mac-screenshot",
+   "winSrc": "win"
+  },
+  {
+   "id": "lock",
+   "action": "system.lock",
+   "label": "Lock the screen",
+   "category": "system",
+   "family": "system",
+   "windows": "win+l",
+   "mac": [
+    "ctrl+cmd+q"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "emoji",
+   "action": "system.emoji",
+   "label": "Emoji and symbols",
+   "category": "system",
+   "family": "system",
+   "windows": "win+period",
+   "mac": [
+    "ctrl+cmd+space"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "task-manager",
+   "action": "system.force-quit",
+   "label": "Force quit (Activity Monitor for the rest)",
+   "category": "system",
+   "family": "system",
+   "windows": "ctrl+shift+esc",
+   "mac": [
+    "opt+cmd+esc"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "ctrl-alt-del",
+   "action": "system.force-quit",
+   "label": "Force quit (Activity Monitor for the rest)",
+   "category": "system",
+   "family": "system",
+   "windows": "ctrl+alt+fwddelete",
+   "mac": [
+    "opt+cmd+esc"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "rename",
+   "action": "files.rename",
+   "label": "Rename",
+   "category": "files",
+   "family": "files",
+   "windows": "f2",
+   "mac": [
+    "return"
+   ],
+   "src": "mac-rename",
+   "winSrc": "win"
+  },
+  {
+   "id": "delete-file",
+   "action": "files.trash",
+   "label": "Move to Trash",
+   "category": "files",
+   "family": "files",
+   "windows": "fwddelete",
+   "mac": [
+    "cmd+backspace"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "delete-now",
+   "action": "files.delete-now",
+   "label": "Delete immediately",
+   "category": "files",
+   "family": "files",
+   "windows": "shift+fwddelete",
+   "mac": [
+    "opt+cmd+backspace"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "new-folder",
+   "action": "files.new-folder",
+   "label": "New folder",
+   "category": "files",
+   "family": "files",
+   "windows": "ctrl+shift+n",
+   "mac": [
+    "cmd+shift+n"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "properties",
+   "action": "files.info",
+   "label": "Get Info",
+   "category": "files",
+   "family": "files",
+   "windows": "alt+return",
+   "mac": [
+    "cmd+i"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "parent-folder",
+   "action": "files.parent",
+   "label": "Enclosing folder",
+   "category": "files",
+   "family": "files",
+   "windows": "alt+up",
+   "mac": [
+    "cmd+up"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "files-back",
+   "action": "files.back",
+   "label": "Back",
+   "category": "files",
+   "family": "files",
+   "windows": "alt+left",
+   "mac": [
+    "cmd+["
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "files-forward",
+   "action": "files.forward",
+   "label": "Forward",
+   "category": "files",
+   "family": "files",
+   "windows": "alt+right",
+   "mac": [
+    "cmd+]"
+   ],
+   "src": "mac",
+   "winSrc": "win"
+  },
+  {
+   "id": "new-tab",
+   "action": "browser.tab.new",
+   "label": "New tab",
+   "category": "browser",
+   "family": "browser",
+   "windows": "ctrl+t",
+   "mac": [
+    "cmd+t"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win"
+  },
+  {
+   "id": "reopen-tab",
+   "action": "browser.tab.reopen",
+   "label": "Reopen closed tab",
+   "category": "browser",
+   "family": "browser",
+   "windows": "ctrl+shift+t",
+   "mac": [
+    "cmd+shift+t"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win"
+  },
+  {
+   "id": "address-bar",
+   "action": "browser.address",
+   "label": "Jump to the address bar",
+   "category": "browser",
+   "family": "browser",
+   "windows": "ctrl+l",
+   "mac": [
+    "cmd+l"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win"
+  },
+  {
+   "id": "address-bar-f6",
+   "action": "browser.address",
+   "label": "Jump to the address bar",
+   "category": "browser",
+   "family": "browser",
+   "windows": "f6",
+   "mac": [
+    "cmd+l"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win"
+  },
+  {
+   "id": "address-bar-alt",
+   "action": "browser.address",
+   "label": "Jump to the address bar",
+   "category": "browser",
+   "family": "browser",
+   "windows": "alt+d",
+   "mac": [
+    "cmd+l"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win"
+  },
+  {
+   "id": "reload",
+   "action": "browser.reload",
+   "label": "Reload",
+   "category": "browser",
+   "family": "browser",
+   "windows": "ctrl+r",
+   "mac": [
+    "cmd+r"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win"
+  },
+  {
+   "id": "reload-f5",
+   "action": "browser.reload",
+   "label": "Reload",
+   "category": "browser",
+   "family": "browser",
+   "windows": "f5",
+   "mac": [
+    "cmd+r"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win"
+  },
+  {
+   "id": "hard-reload",
+   "action": "browser.reload-hard",
+   "label": "Reload, skip the cache",
+   "category": "browser",
+   "family": "browser",
+   "windows": "ctrl+f5",
+   "mac": [
+    "cmd+shift+r"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win"
+  },
+  {
+   "id": "history",
+   "action": "browser.history",
+   "label": "History",
+   "category": "browser",
+   "family": "browser",
+   "windows": "ctrl+h",
+   "mac": [
+    "cmd+y"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win"
+  },
+  {
+   "id": "downloads",
+   "action": "browser.downloads",
+   "label": "Downloads (Chrome; ⌥⌘L in Safari)",
+   "category": "browser",
+   "family": "browser",
+   "windows": "ctrl+j",
+   "mac": [
+    "cmd+shift+j",
+    "opt+cmd+l"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win"
+  },
+  {
+   "id": "bookmark",
+   "action": "browser.bookmark",
+   "label": "Bookmark this page",
+   "category": "browser",
+   "family": "browser",
+   "windows": "ctrl+d",
+   "mac": [
+    "cmd+d"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win"
+  },
+  {
+   "id": "incognito",
+   "action": "browser.private-window",
+   "label": "New private window",
+   "category": "browser",
+   "family": "browser",
+   "windows": "ctrl+shift+n",
+   "mac": [
+    "cmd+shift+n"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win"
+  },
+  {
+   "id": "devtools",
+   "action": "browser.devtools",
+   "label": "Developer tools",
+   "category": "browser",
+   "family": "browser",
+   "windows": "f12",
+   "mac": [
+    "opt+cmd+i"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win"
+  },
+  {
+   "id": "devtools-2",
+   "action": "browser.devtools",
+   "label": "Developer tools",
+   "category": "browser",
+   "family": "browser",
+   "windows": "ctrl+shift+i",
+   "mac": [
+    "opt+cmd+i"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win"
+  },
+  {
+   "id": "tab-1",
+   "action": "browser.tab.first",
+   "label": "First tab",
+   "category": "browser",
+   "family": "browser",
+   "windows": "ctrl+1",
+   "mac": [
+    "cmd+1"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win"
+  },
+  {
+   "id": "tab-last",
+   "action": "browser.tab.last",
+   "label": "Last tab",
+   "category": "browser",
+   "family": "browser",
+   "windows": "ctrl+9",
+   "mac": [
+    "cmd+9"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win"
+  },
+  {
+   "id": "fullscreen",
+   "action": "window.fullscreen",
+   "label": "Full screen",
+   "category": "browser",
+   "family": "browser",
+   "windows": "f11",
+   "mac": [
+    "ctrl+cmd+f"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win",
+   "allowShadow": true
+  },
+  {
+   "id": "zoom-in",
+   "action": "view.zoom-in",
+   "label": "Zoom in",
+   "category": "browser",
+   "family": "browser",
+   "windows": "ctrl+plus",
+   "mac": [
+    "cmd+plus"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win"
+  },
+  {
+   "id": "zoom-out",
+   "action": "view.zoom-out",
+   "label": "Zoom out",
+   "category": "browser",
+   "family": "browser",
+   "windows": "ctrl+minus",
+   "mac": [
+    "cmd+minus"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win"
+  },
+  {
+   "id": "zoom-reset",
+   "action": "view.zoom-reset",
+   "label": "Actual size",
+   "category": "browser",
+   "family": "browser",
+   "windows": "ctrl+0",
+   "mac": [
+    "cmd+0"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win"
+  },
+  {
+   "id": "bookmarks-bar",
+   "action": "browser.bookmarks-bar",
+   "label": "Show bookmarks bar",
+   "category": "browser",
+   "family": "browser",
+   "windows": "ctrl+shift+b",
+   "mac": [
+    "cmd+shift+b"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win"
+  },
+  {
+   "id": "view-source",
+   "action": "browser.view-source",
+   "label": "View page source",
+   "category": "browser",
+   "family": "browser",
+   "windows": "ctrl+u",
+   "mac": [
+    "opt+cmd+u"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win"
+  },
+  {
+   "id": "browser-back",
+   "action": "browser.back",
+   "label": "Back",
+   "category": "browser",
+   "family": "browser",
+   "windows": "alt+left",
+   "mac": [
+    "cmd+[",
+    "cmd+left"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win"
+  },
+  {
+   "id": "browser-forward",
+   "action": "browser.forward",
+   "label": "Forward",
+   "category": "browser",
+   "family": "browser",
+   "windows": "alt+right",
+   "mac": [
+    "cmd+]",
+    "cmd+right"
+   ],
+   "src": "chrome",
+   "winSrc": "chrome-win"
+  },
+  {
+   "id": "at-sign",
+   "action": "type.at-sign",
+   "label": "@",
+   "category": "typing",
+   "family": "system",
+   "layouts": [
+    "de",
+    "at"
+   ],
+   "windows": "altgr+q",
+   "mac": [
+    "opt+l"
+   ],
+   "src": "layout",
+   "winSrc": "layout",
+   "guard": true
+  },
+  {
+   "id": "euro",
+   "action": "type.euro",
+   "label": "€",
+   "category": "typing",
+   "family": "system",
+   "layouts": [
+    "de",
+    "at"
+   ],
+   "windows": "altgr+e",
+   "mac": [
+    "opt+e"
+   ],
+   "src": "layout",
+   "winSrc": "layout"
+  },
+  {
+   "id": "brace-open",
+   "action": "type.brace-open",
+   "label": "{",
+   "category": "typing",
+   "family": "system",
+   "layouts": [
+    "de",
+    "at"
+   ],
+   "windows": "altgr+7",
+   "mac": [
+    "opt+8"
+   ],
+   "src": "layout",
+   "winSrc": "layout"
+  },
+  {
+   "id": "bracket-open",
+   "action": "type.bracket-open",
+   "label": "[",
+   "category": "typing",
+   "family": "system",
+   "layouts": [
+    "de",
+    "at"
+   ],
+   "windows": "altgr+8",
+   "mac": [
+    "opt+5"
+   ],
+   "src": "layout",
+   "winSrc": "layout"
+  },
+  {
+   "id": "bracket-close",
+   "action": "type.bracket-close",
+   "label": "]",
+   "category": "typing",
+   "family": "system",
+   "layouts": [
+    "de",
+    "at"
+   ],
+   "windows": "altgr+9",
+   "mac": [
+    "opt+6"
+   ],
+   "src": "layout",
+   "winSrc": "layout"
+  },
+  {
+   "id": "brace-close",
+   "action": "type.brace-close",
+   "label": "}",
+   "category": "typing",
+   "family": "system",
+   "layouts": [
+    "de",
+    "at"
+   ],
+   "windows": "altgr+0",
+   "mac": [
+    "opt+9"
+   ],
+   "src": "layout",
+   "winSrc": "layout"
+  },
+  {
+   "id": "backslash",
+   "action": "type.backslash",
+   "label": "\\",
+   "category": "typing",
+   "family": "system",
+   "layouts": [
+    "de",
+    "at"
+   ],
+   "windows": "altgr+ß",
+   "mac": [
+    "opt+shift+7"
+   ],
+   "src": "layout",
+   "winSrc": "layout"
+  },
+  {
+   "id": "tilde",
+   "action": "type.tilde",
+   "label": "~",
+   "category": "typing",
+   "family": "system",
+   "layouts": [
+    "de",
+    "at"
+   ],
+   "windows": "altgr+plus",
+   "mac": [
+    "opt+n"
+   ],
+   "src": "layout",
+   "winSrc": "layout"
+  },
+  {
+   "id": "pipe",
+   "action": "type.pipe",
+   "label": "|",
+   "category": "typing",
+   "family": "system",
+   "layouts": [
+    "de",
+    "at"
+   ],
+   "windows": "altgr+<",
+   "mac": [
+    "opt+7"
+   ],
+   "src": "layout",
+   "winSrc": "layout"
+  },
+  {
+   "id": "micro",
+   "action": "type.micro",
+   "label": "µ",
+   "category": "typing",
+   "family": "system",
+   "layouts": [
+    "de",
+    "at"
+   ],
+   "windows": "altgr+m",
+   "mac": [
+    "opt+m"
+   ],
+   "src": "layout",
+   "winSrc": "layout"
+  }
+ ],
+ "reserved": {
+  "note": "Chords people press on purpose to TYPE a character on a Mac. A habit that arrives as one of these is dropped: a wrong hint every time you type € is worse than no hint.",
+  "us": [
+   "opt+e",
+   "opt+u",
+   "opt+i",
+   "opt+n",
+   "opt+`",
+   "opt+s",
+   "opt+2",
+   "opt+3",
+   "opt+8"
+  ],
+  "de": [
+   "opt+l",
+   "opt+e",
+   "opt+5",
+   "opt+6",
+   "opt+7",
+   "opt+8",
+   "opt+9",
+   "opt+n",
+   "opt+shift+7",
+   "opt+m"
+  ],
+  "at": [
+   "opt+l",
+   "opt+e",
+   "opt+5",
+   "opt+6",
+   "opt+7",
+   "opt+8",
+   "opt+9",
+   "opt+n",
+   "opt+shift+7",
+   "opt+m"
+  ]
+ },
+ "destructive": {
+  "note": "Mac chords that lose work or state when pressed by accident. A habit rule may only guard (block) one of these.",
+  "chords": [
+   "cmd+q",
+   "cmd+w",
+   "opt+cmd+w",
+   "cmd+shift+q",
+   "cmd+backspace",
+   "opt+cmd+backspace"
+  ]
+ }
+}

@@ -1,0 +1,26 @@
+{
+  "appFamilies": [
+    { "id": "system", "label": "Any app", "mac": [], "windows": [] },
+    { "id": "files", "label": "Finder", "mac": ["com.apple.finder"], "windows": ["explorer.exe"] },
+    { "id": "browser", "label": "Browser",
+      "mac": ["com.google.Chrome", "com.google.Chrome.beta", "com.google.Chrome.canary", "com.microsoft.edgemac", "com.brave.Browser", "company.thebrowser.Browser", "com.vivaldi.Vivaldi", "com.operasoftware.Opera", "com.apple.Safari", "org.mozilla.firefox"],
+      "windows": ["chrome.exe", "msedge.exe", "brave.exe", "arc.exe", "vivaldi.exe", "opera.exe", "firefox.exe"] },
+    { "id": "chat", "label": "Chat",
+      "mac": ["com.tinyspeck.slackmacgap", "com.microsoft.teams2", "com.microsoft.teams", "com.hnc.Discord", "net.whatsapp.WhatsApp", "ru.keepcoder.Telegram", "org.whispersystems.signal-desktop", "com.apple.MobileSMS"],
+      "windows": ["slack.exe", "ms-teams.exe", "teams.exe", "discord.exe", "whatsapp.exe", "telegram.exe", "signal.exe"] },
+    { "id": "office", "label": "Office",
+      "mac": ["com.microsoft.Word", "com.microsoft.Excel", "com.microsoft.Powerpoint", "com.microsoft.Outlook", "com.apple.iWork.Pages", "com.apple.iWork.Numbers", "com.apple.iWork.Keynote"],
+      "windows": ["winword.exe", "excel.exe", "powerpnt.exe", "outlook.exe", "olk.exe"] },
+    { "id": "editor", "label": "Code editor",
+      "mac": ["com.microsoft.VSCode", "com.todesktop.230313mzl4w4u92", "dev.zed.Zed", "com.sublimetext.4"],
+      "windows": ["code.exe", "cursor.exe", "zed.exe", "sublime_text.exe"] },
+    { "id": "terminal", "label": "Terminal", "exclude": "hints",
+      "note": "Ctrl+C and friends are correct in a terminal, so habit hints are off here. Typing habits (AltGr+Q) stay on: right ⌘Q still quits the terminal.",
+      "mac": ["com.apple.Terminal", "com.googlecode.iterm2", "dev.warp.Warp-Stable", "com.mitchellh.ghostty", "net.kovidgoyal.kitty", "org.alacritty", "com.github.wez.wezterm"],
+      "windows": ["windowsterminal.exe", "cmd.exe", "powershell.exe", "pwsh.exe", "wezterm-gui.exe"] },
+    { "id": "remote", "label": "Remote desktop and VMs", "exclude": "all",
+      "note": "Windows shortcuts are correct inside a remote Windows session or a VM (D11).",
+      "mac": ["com.microsoft.rdc.macos", "com.microsoft.rdc.osx.beta", "com.citrix.receiver.icaviewer.mac", "com.parallels.desktop.console", "com.vmware.fusion", "com.utmapp.UTM", "com.teamviewer.TeamViewer", "com.philandro.anydesk", "com.apple.ScreenSharing", "org.virtualbox.app.VirtualBoxVM"],
+      "windows": ["mstsc.exe", "msrdc.exe", "vmware.exe", "virtualboxvm.exe"] }
+  ]
+}
