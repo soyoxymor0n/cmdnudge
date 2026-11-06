@@ -438,6 +438,13 @@ pub fn run() {
                 })
                 .build(app)?;
 
+            // CMDNUDGE_DEMO=hint|guard shows a toast right after launch (screenshots, smoke tests).
+            if let Ok(kind) = std::env::var("CMDNUDGE_DEMO") {
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_millis(800));
+                    test_toast(kind);
+                });
+            }
             if !e.settings.read().unwrap().onboarded {
                 show_window(app.handle(), Some("onboarding"));
             }
