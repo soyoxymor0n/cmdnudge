@@ -29,13 +29,14 @@ function loadClerk(pk, host) {
 }
 
 async function main() {
-  if (!/^[0-9a-f]{32}$/.test(state)) return say('Open this page from the cmdnudge app: Settings → Your other computers → Sync with an account.');
+  if (!/^[0-9a-f]{32}$/.test(state)) return say('Open this page from the cmdnudge app: Settings → Sync with an account → Sign in.');
   const cfg = await fetch('/api/link', { cache: 'no-store' }).catch(() => null);
   if (!cfg || !cfg.ok) return say('Sync with an account is not open yet. Folder sync works today: Settings → Your other computers.');
   const { clerkPublishableKey: pk } = await cfg.json();
   const host = frontendApi(pk);
   if (!host) return say('Sign-in is not configured correctly. Please try again later.');
-  const Clerk = await loadClerk(pk, host);
+  const Clerk = await loadClerk(pk, host).catch(() => null);
+  if (!Clerk) return say('Sign-in could not load. Check your connection and try again from the app.');
   await Clerk.load();
   if (!Clerk.user) {
     say('Sign in to continue.');
