@@ -1,0 +1,428 @@
+<!doctype html>
+<!--
+  cmdnudge.com - the landing page.
+
+  Grammar: a night desk. A Mac screen glows in the dark; your Windows hands keep
+  pressing the old keys, and every slip lights up a small card in the corner that
+  answers with the Mac key. The page is that card, told five ways.
+
+  Feeling curve (one emotion per act):
+    1 hero        - recognition: "Ctrl+C. Nothing happens." That is me.
+    2 marquee     - the size of it: so many little habits
+    3 statement   - the sting, in the owner's words: the @ that quits Slack, the screenshot you look up again
+    4 trap        - the "aha": the same physical key means AltGr on Windows and right ⌘ on a Mac
+    5 how         - relief: three plain steps, the misses go down
+    6 playground  - agency (the peak): press your own habit, watch the real library answer
+    7 map         - thoroughness: every habit, every layout, with its source
+    8 privacy     - trust: the actual filter, pasted from the app at build time
+    9 remapper    - honesty: what we are not
+   10 faq + close - calm: the numbers, the download, the thread tied (your first key, named again)
+
+  The peak, as a visitor would say it: "I pressed AltGr+Q in the browser and it showed me
+  that my Mac receives right ⌘Q, and blocked it, and told me ⌥L."
+  Signature move: the hero, the playground and the habit map all run the REAL shortcut
+  library (library.json) and the REAL chord rules (chord.mjs) the app ships with.
+
+  Register: playful-leaning on a dark stage (light theme too). Two hues with a meaning:
+  --hand (cool blue) is the Windows habit, --mac (warm orange) is the Mac answer.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>cmdnudge: your Windows shortcuts, translated the moment you press them</title>
+    <meta name="description" content="A small Mac app for Windows hands. When an old shortcut slips, cmdnudge shows you the Mac one, right then. Free, open source, and it never records what you type." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://cmdnudge.com/" />
+    <meta property="og:title" content="cmdnudge: your Windows shortcuts, translated the moment you press them" />
+    <meta property="og:description" content="Ctrl+C on a Mac does nothing. cmdnudge shows you ⌘C, right when your hands slip. Free and open source." />
+    <meta property="og:image" content="https://cmdnudge.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#070a14" />
+    <link rel="icon" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/icon.png" />
+    <script>
+      // No-flash theme init (theme-toggle standard): key "theme", class + data-theme on <html>.
+      (function () {
+        var s = null;
+        try { s = localStorage.getItem('theme'); } catch (e) {}
+        var dark = s === 'dark' || ((!s || s === 'system') && matchMedia('(prefers-color-scheme: dark)').matches);
+        var r = document.documentElement;
+        r.classList.toggle('dark', dark);
+        r.setAttribute('data-theme', dark ? 'dark' : 'light');
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="/landing.css" />
+    <script type="module" src="/landing.js"></script>
+  </head>
+  <body>
+    <canvas class="field" id="field" aria-hidden="true"></canvas>
+
+    <!-- Header: off-screen until the hero has scrolled past (header-logo tier 1). -->
+    <header class="topbar" id="topbar">
+      <a class="logo" href="#top" id="logo" aria-label="cmdnudge, back to top">
+        <img src="/icon.png" alt="" width="26" height="26" />
+        <span>cmdnudge</span>
+        <svg class="logo-up" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <nav class="topnav" aria-label="Sections">
+        <a href="#how">How it works</a>
+        <a href="#play">Try it</a>
+        <a href="#map">Habit map</a>
+        <a href="#privacy">Privacy</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <button class="theme-btn" type="button" data-theme-toggle aria-label="Switch colour theme">
+        <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>
+      </button>
+      <a class="btn btn-small btn-primary" href="https://github.com/soyoxymor0n/cmdnudge#install">Get cmdnudge</a>
+    </header>
+
+    <nav class="rail" id="rail" aria-label="Page sections"></nav>
+
+    <main id="top">
+      <!-- 1 · Hero ------------------------------------------------------------ -->
+      <section class="hero" data-rail="Start">
+        <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+        <button class="theme-btn theme-btn-hero" type="button" data-theme-toggle aria-label="Switch colour theme">
+          <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
+          <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>
+        </button>
+        <div class="hero-inner">
+          <div class="hero-copy">
+            <a class="brandline reveal" href="#top"><img src="/icon.png" alt="" width="34" height="34" /><span>cmdnudge</span></a>
+            <h1 class="display reveal" style="--d: 80ms">
+              Ctrl+C.<br />Nothing happens.<br /><span class="accent-wipe">Here’s ⌘C.</span>
+            </h1>
+            <p class="lede reveal" style="--d: 160ms">
+              Your hands learned Windows for years. On a Mac they keep reaching for the old keys. cmdnudge notices the slip and shows you the Mac shortcut right then, in the corner, without getting in your way. Until you stop needing it.
+            </p>
+            <p class="lede small reveal" style="--d: 220ms">
+              Free and open source. It never records what you type, only key combinations like Ctrl+C. <a href="#privacy">Read the filter.</a>
+            </p>
+            <div class="ctas reveal" style="--d: 280ms">
+              <a class="btn btn-primary" href="https://github.com/soyoxymor0n/cmdnudge#install">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.8 1.3 10.3.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.7-1-2.7-4.2ZM13.9 5c.7-.9 1.2-2 1.1-3.2-1 0-2.3.7-3 1.6-.7.8-1.2 2-1.1 3.1 1.1.1 2.3-.6 3-1.5Z"/></svg>
+                Get it for Mac
+              </a>
+              <a class="btn btn-ghost" href="#play">Try your habits here</a>
+            </div>
+            <p class="fine reveal" style="--d: 320ms">For macOS · US, German and Austrian layouts · Apple and PC keyboards</p>
+          </div>
+
+          <div class="hero-slot reveal" style="--d: 200ms">
+            <div class="screen" id="heroScreen" aria-label="A Mac screen. Someone presses Windows shortcuts; a small card in the corner answers with the Mac shortcut.">
+              <div class="menubar">
+                <span class="apple" aria-hidden="true"></span><b>Chat</b><span>File</span><span>Edit</span><span>View</span><span class="hide-s">Window</span>
+                <span class="mb-right"><i class="mb-cmd" title="cmdnudge in the menu bar">⌘</i><span class="hide-s">Fri 9:41</span></span>
+              </div>
+              <div class="appwin" id="heroApp">
+                <div class="appwin-bar"><i></i><i></i><i></i><span>#launch</span></div>
+                <div class="appwin-body">
+                  <aside class="chan"><b># launch</b><span># design</span><span># random</span><span class="hide-s">Anna</span><span class="hide-s">Jonas</span></aside>
+                  <div class="msgs">
+                    <div class="msg"><i style="--h: 210"></i><div><b>Anna</b><p>New build is up. Can someone copy the release notes over?</p></div></div>
+                    <div class="msg"><i style="--h: 28"></i><div><b>You</b><p class="sel" id="heroSel">v0.4: guard for right ⌘Q, quiet hints for mastered keys</p></div></div>
+                    <div class="composer"><span id="heroType"></span><i class="caret"></i></div>
+                  </div>
+                </div>
+              </div>
+              <div class="shot" id="heroShot" aria-hidden="true"></div>
+              <div class="toast" id="heroToast" role="status" aria-live="polite">
+                <div class="t-row"><span class="t-from"></span><span class="t-arrow">→</span><span class="t-to"></span></div>
+                <div class="t-detail"></div>
+              </div>
+            </div>
+            <div class="keys" id="heroKeys" aria-hidden="true"></div>
+            <p class="keys-caption" id="heroCaption" aria-live="polite">&nbsp;</p>
+          </div>
+        </div>
+        <a class="scroll-hint" href="#statement" aria-label="Scroll on"><span></span></a>
+      </section>
+
+      <!-- 2 · Marquee: real habits from the library ------------------------------ -->
+      <div class="marquee" aria-label="Some of the habits cmdnudge knows">
+        <div class="marquee-track" id="marquee">
+          <span><b>Ctrl+C</b> ⌘C</span><span><b>Ctrl+Z</b> ⌘Z</span><span><b>Alt+Tab</b> ⌘Tab</span><span><b>Win+Shift+S</b> ⇧⌘4</span><span><b>Ctrl+F</b> ⌘F</span><span><b>Alt+F4</b> ⌘Q</span><span><b>Win+L</b> ⌃⌘Q</span><span><b>Ctrl+←</b> ⌥←</span>
+        </div>
+      </div>
+
+      <!-- 3 · Statement ---------------------------------------------------------- -->
+      <section class="statement" id="statement" data-rail="Why">
+        <p class="eyebrow">Why this exists</p>
+        <p class="statement-text" id="statementText">You meant to type an @ for a colleague, and your Mac quit the chat app instead. You took a screenshot last week, and today you work out the keys all over again. And nobody tells you how long it takes until your hands stop slipping.</p>
+      </section>
+
+      <!-- 4 · The trap: one physical key, two meanings ----------------------------- -->
+      <section class="trap" id="trap" data-rail="The ⌘Q trap">
+        <div class="trap-pin">
+          <header class="sec-head">
+            <p class="eyebrow">The ⌘Q trap</p>
+            <h2 class="h2">Same key, <span class="mac-text">different meaning.</span></h2>
+            <p class="sec-lede">On a German or Austrian keyboard, @ is AltGr+Q. On a Mac keyboard, the key under your thumb is right ⌘. Your hand does what it always did, and the app is gone.</p>
+          </header>
+          <div class="trap-stage" id="trapStage" data-step="0">
+            <div class="kb-row kb-pc" aria-label="Windows keyboard, bottom row">
+              <span class="kb-label">Windows keyboard</span>
+              <div class="kb-keys">
+                <span class="key" data-k="pc-ctrl">Ctrl</span><span class="key" data-k="pc-win">Win</span><span class="key" data-k="pc-alt">Alt</span><span class="key space">&nbsp;</span><span class="key" data-k="pc-altgr">AltGr</span><span class="key" data-k="pc-menu">☰</span><span class="key" data-k="pc-ctrl-r">Ctrl</span>
+              </div>
+            </div>
+            <svg class="kb-wires" id="trapWires" aria-hidden="true"></svg>
+            <div class="kb-row kb-mac" aria-label="Mac keyboard, bottom row">
+              <span class="kb-label" id="macKbLabel">Apple keyboard</span>
+              <div class="kb-keys">
+                <span class="key" data-k="mac-fn">fn</span><span class="key" data-k="mac-ctrl"><small>control</small>⌃</span><span class="key" data-k="mac-opt"><small>option</small>⌥</span><span class="key wide" data-k="mac-cmd"><small>command</small>⌘</span><span class="key space">&nbsp;</span><span class="key wide" data-k="mac-rcmd"><small>command</small>⌘</span><span class="key" data-k="mac-ropt"><small>option</small>⌥</span>
+              </div>
+            </div>
+            <div class="trap-q">
+              <span class="key big" data-k="q">Q</span><span class="key big" data-k="l">L</span>
+            </div>
+            <div class="trap-out" id="trapOut" aria-live="polite"></div>
+          </div>
+          <ol class="trap-steps" id="trapSteps">
+            <li data-step="1"><b>On Windows</b> your thumb finds AltGr, your finger finds Q, and an @ appears.</li>
+            <li data-step="2"><b>On a Mac keyboard</b> the same spot is right ⌘. ⌘Q quits the app. Your message, gone.</li>
+            <li data-step="3"><b>cmdnudge stops it</b> and tells you the Mac way: ⌥L types @. Only right ⌘Q, only on German and Austrian layouts.</li>
+            <li data-step="4"><b>Left ⌘Q still quits.</b> When you mean it, you can. The guard is one switch in settings.</li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- 5 · How it works ------------------------------------------------------- -->
+      <section class="how band-tint" id="how" data-rail="How it works">
+        <header class="sec-head split">
+          <div>
+            <p class="eyebrow">How it works</p>
+            <h2 class="h2">Three steps. <span class="mac-text">Then you forget it's there.</span></h2>
+          </div>
+          <p class="sec-lede">cmdnudge lives in the menu bar. No dock icon, no window you have to keep open, nothing to configure before it helps.</p>
+        </header>
+        <div class="steps">
+          <article class="step reveal">
+            <span class="step-n">1</span>
+            <h3>Install and allow two things</h3>
+            <p>Input Monitoring, so it can notice key combinations. Accessibility, so the guard can stop a right ⌘Q. Then press Ctrl+C once to see it work.</p>
+            <div class="mini perms" aria-hidden="true">
+              <div class="perm"><span>Input Monitoring</span><i class="sw"></i></div>
+              <div class="perm"><span>Accessibility</span><i class="sw"></i></div>
+            </div>
+          </article>
+          <article class="step reveal" style="--d: 120ms">
+            <span class="step-n">2</span>
+            <h3>Work the way you always do</h3>
+            <p>Each slip shows the Mac key in the corner for a few seconds. It never takes focus, so the next shortcut you press goes to your app.</p>
+            <div class="mini modes" aria-hidden="true">
+              <div class="mode is-on"><b>Show</b><span>a hint when you slip</span></div>
+              <div class="mode"><b>Translate</b><span>does the Mac shortcut for you, and shows it</span></div>
+              <div class="mode"><b>Strict</b><span>waits until you press the Mac key</span></div>
+            </div>
+          </article>
+          <article class="step reveal" style="--d: 240ms">
+            <span class="step-n">3</span>
+            <h3>Watch your misses drop</h3>
+            <p>It counts slips and correct Mac uses per habit, on your Mac only. Ten correct uses and two weeks without a slip, and that hint goes quiet.</p>
+            <div class="mini bars" aria-hidden="true">
+              <div class="bars-row" id="howBars"></div>
+              <div class="bars-cap"><span>14 days</span><span class="chip-ok">Copy · mastered</span></div>
+              <span class="illus">illustration</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- 6 · Playground: the real library, in the browser ------------------------- -->
+      <section class="play" id="play" data-rail="Try it">
+        <header class="sec-head split">
+          <div>
+            <p class="eyebrow">Try it</p>
+            <h2 class="h2">Press your old habit. <span class="mac-text">Right here.</span></h2>
+          </div>
+          <p class="sec-lede">This runs the same habit map the app ships with. Pick your keyboard and layout, then press a Windows shortcut in the box, or tap one below.</p>
+        </header>
+        <div class="play-grid">
+          <div class="play-controls">
+            <div class="ctl">
+              <span class="ctl-label">Your Mac's keyboard</span>
+              <div class="seg" data-ctl="keyboard" role="radiogroup" aria-label="Keyboard">
+                <button type="button" role="radio" data-v="apple" aria-checked="true">Apple</button>
+                <button type="button" role="radio" data-v="pc" aria-checked="false">PC keyboard</button>
+              </div>
+            </div>
+            <div class="ctl">
+              <span class="ctl-label">Layout</span>
+              <div class="seg" data-ctl="layout" role="radiogroup" aria-label="Layout">
+                <button type="button" role="radio" data-v="us" aria-checked="false">US</button>
+                <button type="button" role="radio" data-v="de" aria-checked="false">German</button>
+                <button type="button" role="radio" data-v="at" aria-checked="true">Austrian</button>
+              </div>
+            </div>
+            <div class="ctl">
+              <span class="ctl-label">You are in</span>
+              <div class="seg seg-wrap" data-ctl="family" role="radiogroup" aria-label="App"></div>
+            </div>
+          </div>
+
+          <div class="play-main">
+            <div class="pad" id="pad" tabindex="0" role="application" aria-label="Press a shortcut here">
+              <div class="pad-idle" id="padIdle">
+                <span class="pad-keys" aria-hidden="true"><span class="key">Ctrl</span><span class="key">C</span></span>
+                <b id="padHint">Click here, then press a shortcut</b>
+                <span id="padSub">Your browser keeps a few to itself (⌘Q, ⌘W, ⌘Tab). Use the chips for those.</span>
+              </div>
+              <div class="flow" id="flow" hidden>
+                <div class="flow-node hand"><span>Your hands</span><b id="flowHand"></b></div>
+                <div class="flow-arrow" aria-hidden="true"></div>
+                <div class="flow-node recv"><span>Your Mac receives</span><b id="flowRecv"></b></div>
+                <div class="flow-arrow" aria-hidden="true"></div>
+                <div class="flow-node macway"><span id="flowWayLabel">The Mac way</span><b id="flowWay"></b></div>
+              </div>
+              <div class="toast toast-play" id="playToast" role="status" aria-live="polite">
+                <div class="t-row"><span class="t-from"></span><span class="t-arrow">→</span><span class="t-to"></span></div>
+                <div class="t-detail"></div>
+              </div>
+            </div>
+            <div class="chips" id="chips" aria-label="Windows shortcuts to try"></div>
+            <p class="play-note" id="playNote">Nothing you press here leaves this page.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7 · Habit map ------------------------------------------------------------ -->
+      <section class="map band-dots" id="map" data-rail="Habit map">
+        <header class="sec-head split">
+          <div>
+            <p class="eyebrow">The habit map</p>
+            <h2 class="h2"><span data-count="habits">{{habits}}</span> Windows habits. <span class="mac-text">Each with its Mac answer.</span></h2>
+          </div>
+          <p class="sec-lede">Every row links to Apple's and Microsoft's own documentation, or to the measurement it comes from. The keys follow the keyboard and layout you picked above (<b id="mapCtx">Apple, Austrian</b>).</p>
+        </header>
+        <div class="map-tools">
+          <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><input id="mapSearch" type="search" placeholder="Search: screenshot, tab, @ …" aria-label="Search habits" /></label>
+          <div class="tabs" id="mapTabs" role="tablist" aria-label="Category"></div>
+        </div>
+        <div class="map-list" id="mapList" role="list"></div>
+        <div class="map-more"><button class="btn btn-ghost" type="button" id="mapMore">Show all</button></div>
+      </section>
+
+      <!-- 8 · Privacy -------------------------------------------------------------- -->
+      <section class="privacy" id="privacy" data-rail="Privacy">
+        <div class="priv-grid">
+          <div class="priv-copy">
+            <p class="eyebrow">Privacy you can read</p>
+            <h2 class="h2">It never records <span class="mac-text">what you type.</span></h2>
+            <p class="sec-lede">An app that sees your keys should prove what it keeps. Every key press goes through one small function first. Letters, numbers, Shift+letter, Space, Return: forgotten on the spot. Only key combinations get through, and even those are only kept as a count of a known habit.</p>
+            <ul class="kept">
+              <li><b>Stored</b><span>a counter per habit and app family: “Copy, in Chat, 12 slips, 30 correct”, and a total per day</span></li>
+              <li><b>Never stored</b><span>what you type, which keys, when to the second, window titles, app names</span></li>
+              <li><b>Where</b><span>a small database on your Mac. You can look at the raw rows, export them or delete them in settings</span></li>
+            </ul>
+            <p class="fine">Open source shows what the code does. To check that a download matches it, build it yourself; signed builds from public CI with published checksums are next.</p>
+          </div>
+          <figure class="code reveal">
+            <div class="code-bar"><i></i><i></i><i></i><span>apps/desktop/src-tauri/src/filter.rs</span></div>
+<pre><code><!--FILTER_RS--></code></pre>
+            <figcaption><a href="https://github.com/soyoxymor0n/cmdnudge/blob/main/apps/desktop/src-tauri/src/filter.rs#{{FILTER_LINES}}">Read it on GitHub, with its tests →</a></figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- 9 · Not a remapper --------------------------------------------------------- -->
+      <section class="remap band-tint" id="remap" data-rail="Not a remapper">
+        <header class="sec-head center">
+          <p class="eyebrow">Honest about what it is</p>
+          <h2 class="h2">Not a remapper. <span class="mac-text">A coach.</span></h2>
+        </header>
+        <div class="vs">
+          <article class="vs-card vs-them">
+            <span class="vs-tag">A remapper, like Karabiner</span>
+            <h3>Your Mac pretends to be Windows.</h3>
+            <p>Ctrl+C copies, forever. Great if that is what you want. Every Mac you sit at without it feels broken, and so does every Mac tutorial.</p>
+          </article>
+          <article class="vs-card vs-us">
+            <span class="vs-tag">cmdnudge</span>
+            <h3>You learn the Mac.</h3>
+            <p>Your shortcuts stay the Mac's. cmdnudge shows you the way each time you slip, and goes quiet once you've got it. The goal is that one day you don't need it.</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- 10 · FAQ ------------------------------------------------------------------- -->
+      <section class="faq" id="faq" data-rail="FAQ">
+        <header class="sec-head split">
+          <div>
+            <p class="eyebrow">Questions</p>
+            <h2 class="h2">The short answers.</h2>
+          </div>
+        </header>
+        <div class="faq-list">
+          <details>
+            <summary>Which permissions does it need, and why?</summary>
+            <p>Input Monitoring, to notice key combinations at all. Accessibility, so the guard can stop a right ⌘Q and translate mode can press the Mac shortcut for you. macOS asks once; you can take both back any time in System Settings.</p>
+          </details>
+          <details>
+            <summary>Which keyboard layouts work?</summary>
+            <p>US, German and Austrian, chosen from your Mac's input source automatically. Shortcuts like Ctrl+C work on other layouts too; the typing habits (@, €, braces) are only known for German and Austrian so far.</p>
+          </details>
+          <details>
+            <summary>I use a PC keyboard on my Mac. Does that matter?</summary>
+            <p>Yes, and cmdnudge knows it. On an Apple keyboard your Alt key is ⌘; on a PC keyboard the Windows key is ⌘ and Alt is ⌥. The hints follow the keyboard you pick in settings.</p>
+          </details>
+          <details>
+            <summary>What about remote desktop, virtual machines and the terminal?</summary>
+            <p>In remote desktop apps and VMs, Windows shortcuts are the right ones, so cmdnudge stays quiet there. In terminals Ctrl+C means something of its own, so shortcut hints are off and only the @-style typing hints remain. You can mute any app family.</p>
+          </details>
+          <details>
+            <summary>Does it change what my keys do?</summary>
+            <p>Not by default. It only shows hints. Translate mode presses the Mac shortcut for you as well; strict mode holds the old shortcut back until you use the Mac one. The guard is the one thing on by default: it stops right ⌘Q when it came from the @ habit.</p>
+          </details>
+          <details>
+            <summary>Is it free? Where do I get it?</summary>
+            <p>Free and open source under the MIT licence. Right now you build it from the source on GitHub, which takes a few minutes with the steps in the readme. A notarized download is the next step.</p>
+          </details>
+          <details>
+            <summary>Does anything leave my Mac?</summary>
+            <p>No. There is no account and no server in this version. The counts live in a small database on your Mac, and you can export or delete them in settings.</p>
+          </details>
+        </div>
+      </section>
+
+      <!-- 11 · Finale --------------------------------------------------------------- -->
+      <section class="finale band-deep" id="close" data-rail="Get it">
+        <div class="aurora aurora-soft" aria-hidden="true"><i></i><i></i></div>
+        <div class="stats" id="stats">
+          <div class="stat"><b data-to="{{habits}}">{{habits}}</b><span>Windows habits</span></div>
+          <div class="stat"><b data-to="{{rules}}">{{rules}}</b><span>rules across layouts and keyboards</span></div>
+          <div class="stat"><b data-to="3">3</b><span>layouts: US, German, Austrian</span></div>
+          <div class="stat"><b data-to="0">0</b><span>keystrokes stored</span></div>
+        </div>
+        <h2 class="display finale-line" id="finaleLine">Your hands will catch up.<br /><span class="mac-text">Let them.</span></h2>
+        <p class="lede center" id="finaleRemember">Install it, keep working, and watch the slips go down.</p>
+        <div class="ctas center">
+          <a class="btn btn-primary" href="https://github.com/soyoxymor0n/cmdnudge#install">Get it for Mac</a>
+          <a class="btn btn-ghost" href="https://github.com/soyoxymor0n/cmdnudge">Source on GitHub</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <div class="foot-inner">
+        <a class="logo" href="#top"><img src="/icon.png" alt="" width="22" height="22" /><span>cmdnudge</span></a>
+        <nav aria-label="Footer">
+          <a href="https://github.com/soyoxymor0n/cmdnudge">GitHub</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/imprint">Imprint</a>
+          <button class="linkish" type="button" data-theme-toggle>Theme</button>
+        </nav>
+        <p class="also">Also from us: <a href="https://github.com/soyoxymor0n/mac-mouse-fix-ng">Mac Mouse Fix NG</a>, for your mouse on a Mac.</p>
+        <p class="fine">MIT licence · Made in Vienna · Not affiliated with Apple or Microsoft</p>
+      </div>
+    </footer>
+  </body>
+</html>
