@@ -173,3 +173,4 @@ table.map { width: 100%; border-collapse: collapse; }
 .keycheck { margin-top: 14px; padding: 12px 14px; border-radius: 10px; background: var(--key-bg); display: grid; gap: 4px; }
 .keycheck .row { margin-top: 2px; }
 .about { text-align: center; }
+p.warn { color: var(--warn); }

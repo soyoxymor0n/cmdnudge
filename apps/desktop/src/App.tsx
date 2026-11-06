@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { api, onChanged, onNavigate, FILTER_URL, REPO } from "./api";
-import type { Library, RawRows, Settings, Stats, Status } from "./api";
+import type { Library, RawRows, Settings, Stats, Status, SyncReport } from "./api";
 import { mac, win } from "./chords";
 
 type View = "onboarding" | "stats" | "library" | "settings";
@@ -448,6 +448,76 @@ function LibraryView({ lib, status }: { lib: Library; status: Status }) {
 
 /* ---------- Settings ------------------------------------------------------------------- */
 
+/** Shortens a path under the home folder and names iCloud Drive the way Finder does. */
+function prettyFolder(path: string): string {
+  return path
+    .replace(/^\/Users\/[^/]+\/Library\/Mobile Documents\/com~apple~CloudDocs/, "iCloud Drive")
+    .replace(/^\/Users\/[^/]+/, "~");
+}
+
+function reportLine(r: SyncReport): string {
+  if (r.devices === 0 && r.problems.length) return `Could not sync: ${r.problems[0]}`;
+  const who = r.devices === 0 ? "No other computer has written to the folder yet" : `Counts from ${r.devices} other computer${r.devices === 1 ? "" : "s"} included`;
+  const skipped = r.skippedRows ? ` · ${r.skippedRows} rows from a newer version skipped` : "";
+  return `${who}${skipped}. Last sync ${r.day}.`;
+}
+
+function SyncCard() {
+  const [sync, reload] = useLive(api.syncStatus, 5000);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const run = (p: Promise<unknown>, done?: string) => {
+    setBusy(true);
+    setNote("");
+    p.then(() => done && setNote(done))
+      .catch((e) => setNote(String(e)))
+      .finally(() => {
+        setBusy(false);
+        reload();
+      });
+  };
+  if (!sync) return null;
+  const others = sync.devices.length;
+  return (
+    <section className="card">
+      <h2>Your other computers</h2>
+      <p className="muted small">
+        Learning on two Macs? Point both at the same folder, for example in iCloud Drive or Dropbox. Each computer writes one
+        small file with its counters there and reads the other files. Only the counters from the table below go into the file,
+        never keys or text.
+      </p>
+      {sync.folder ? (
+        <>
+          <div className="row">
+            <span className="k">{prettyFolder(sync.folder)}/cmdnudge-sync</span>
+            <span className="grow" />
+            <button className="btn" disabled={busy} onClick={() => run(api.syncNow())}>Sync now</button>
+            <button className="btn ghost" disabled={busy} onClick={() => run(api.chooseSyncFolder())}>Change folder</button>
+            <button className="btn ghost" disabled={busy} onClick={() => run(api.stopSync(false), "File sync is off. Counts from other computers stay until you remove them.")}>Turn off</button>
+          </div>
+          {sync.last && <p className={sync.last.problems.length ? "muted small warn" : "muted small"}>{reportLine(sync.last)}</p>}
+        </>
+      ) : (
+        <div className="row">
+          <button className="btn" disabled={busy} onClick={() => run(api.chooseSyncFolder())}>Choose a sync folder…</button>
+          <span className="muted small">or move the file by hand:</span>
+          <button className="btn ghost" disabled={busy} onClick={() => run(api.importData().then((r) => r && setNote(`Imported ${r.rows} counters from another computer.`)))}>Import counters…</button>
+        </div>
+      )}
+      {others > 0 && (
+        <div className="row">
+          <span className="muted small">
+            {others} other computer{others === 1 ? "" : "s"} in your totals ({sync.devices.map(([, n]) => n).reduce((a, b) => a + b, 0)} rows). This Mac is {sync.deviceId}.
+          </span>
+          <span className="grow" />
+          {!sync.folder && <button className="btn ghost small" disabled={busy} onClick={() => run(api.stopSync(true), "Counts from other computers removed.")}>Remove their counts</button>}
+        </div>
+      )}
+      {note && <p className="note">{note}</p>}
+    </section>
+  );
+}
+
 function SettingsView(p: { status: Status; settings: Settings; save: (s: Partial<Settings>) => Promise<void>; lib: Library }) {
   const { status, settings, save, lib } = p;
   const [raw, setRaw] = useState<RawRows | null>(null);
@@ -557,6 +627,8 @@ function SettingsView(p: { status: Status; settings: Settings; save: (s: Partial
         ))}
       </section>
 
+      <SyncCard />
+
       <section className="card">
         <h2>What is stored</h2>
         <p className="muted small">
@@ -564,7 +636,7 @@ function SettingsView(p: { status: Status; settings: Settings; save: (s: Partial
         </p>
         <div className="row">
           <button className="btn" onClick={() => api.raw().then(setRaw)}>{raw ? "Refresh" : "Show the raw rows"}</button>
-          <button className="btn ghost" onClick={() => api.exportData().then((path) => setNote(`Saved to ${path}`))}>Export counters</button>
+          <button className="btn ghost" onClick={() => api.exportData().then((path) => path && setNote(`Saved to ${path}`)).catch((e) => setNote(String(e)))}>Export counters</button>
           <span className="grow" />
           <button
             className="btn danger ghost"
@@ -583,14 +655,14 @@ function SettingsView(p: { status: Status; settings: Settings; save: (s: Partial
           <div className="raw">
             <p className="muted small">Columns: {raw.columns.map(([t, c]) => `${t}(${c.join(", ")})`).join(" · ")}</p>
             <table className="map small">
-              <thead><tr><th>app_family</th><th>action_id</th><th>kind</th><th>count</th><th>first day</th><th>last day</th></tr></thead>
+              <thead><tr><th>device</th><th>app_family</th><th>action_id</th><th>kind</th><th>count</th><th>first day</th><th>last day</th></tr></thead>
               <tbody>
                 {raw.counters.map((r) => (
-                  <tr key={`${r.app_family}${r.action_id}${r.kind}`}>
-                    <td>{r.app_family}</td><td>{r.action_id}</td><td>{r.kind}</td><td>{r.count}</td><td>{r.first_seen_day}</td><td>{r.last_seen_day}</td>
+                  <tr key={`${r.device_id}${r.app_family}${r.action_id}${r.kind}`}>
+                    <td>{r.device_id === raw.deviceId ? "this Mac" : r.device_id}</td><td>{r.app_family}</td><td>{r.action_id}</td><td>{r.kind}</td><td>{r.count}</td><td>{r.first_seen_day}</td><td>{r.last_seen_day}</td>
                   </tr>
                 ))}
-                {raw.counters.length === 0 && <tr><td colSpan={6} className="muted">No rows yet.</td></tr>}
+                {raw.counters.length === 0 && <tr><td colSpan={7} className="muted">No rows yet.</td></tr>}
               </tbody>
             </table>
           </div>

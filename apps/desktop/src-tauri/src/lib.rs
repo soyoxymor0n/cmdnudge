@@ -10,6 +10,7 @@ mod mac;
 mod matcher;
 mod settings;
 mod store;
+mod sync;
 
 use engine::{Engine, KeyCheck, RecentHint, ToastSpec, ToastStyle};
 use serde::Serialize;
@@ -81,7 +82,9 @@ fn get_settings() -> Settings {
 }
 
 #[tauri::command]
-fn save_settings(settings: Settings) {
+fn save_settings(mut settings: Settings) {
+    // The sync folder only changes through the folder picker (choose_sync_folder / stop_sync).
+    settings.sync_folder = engine().settings.read().unwrap().sync_folder.clone();
     #[cfg(target_os = "macos")]
     mac::toast::set_position(&settings.position);
     engine().save_settings(settings);
@@ -246,19 +249,122 @@ fn test_toast(kind: String) {
     }
 }
 
+fn known_pair(family: &str, action: &str) -> bool {
+    let lib = library::get();
+    lib.family(family).is_some() && lib.action(action).is_some()
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SyncStatus {
+    folder: Option<String>,
+    device_id: String,
+    last: Option<sync::Report>,
+    devices: Vec<(String, i64)>,
+}
+
 #[tauri::command]
-fn export_data(app: AppHandle) -> Result<String, String> {
-    let rows = get_raw_rows()?;
-    let payload = serde_json::json!({
-        "format": "cmdnudge-counters/1",
-        "deviceId": rows.device_id,
-        "exportedOn": store::today(),
-        "counters": rows.counters,
-    });
-    let dir = app.path().download_dir().map_err(|e| e.to_string())?;
-    let path = dir.join(format!("cmdnudge-{}.json", store::today()));
-    std::fs::write(&path, serde_json::to_vec_pretty(&payload).unwrap()).map_err(|e| e.to_string())?;
-    Ok(path.to_string_lossy().into_owned())
+fn sync_status() -> Result<SyncStatus, String> {
+    let e = engine();
+    let store = e.store.lock().unwrap();
+    Ok(SyncStatus {
+        folder: e.settings.read().unwrap().sync_folder.clone(),
+        device_id: store.device_id.clone(),
+        last: sync::last_report(),
+        devices: store.other_devices().map_err(|x| x.to_string())?,
+    })
+}
+
+/// One file-sync round if a folder is set. Returns None when sync is off.
+fn run_sync() -> Option<Result<sync::Report, String>> {
+    let e = engine();
+    let folder = e.settings.read().unwrap().sync_folder.clone()?;
+    let day = store::today();
+    let res = {
+        let store = e.store.lock().unwrap();
+        sync::sync_folder(&store, std::path::Path::new(&folder), &known_pair, &day)
+    };
+    if let Err(err) = &res {
+        sync::record_failure(&day, err);
+    }
+    e.notify();
+    Some(res)
+}
+
+#[tauri::command]
+fn sync_now() -> Result<SyncStatus, String> {
+    if let Some(Err(e)) = run_sync() {
+        return Err(e);
+    }
+    sync_status()
+}
+
+#[tauri::command]
+async fn choose_sync_folder(app: AppHandle) -> Result<Option<SyncStatus>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let mut dialog = app.dialog().file().set_title("Choose a folder both computers can reach");
+    if let Ok(home) = app.path().home_dir() {
+        let icloud = home.join("Library/Mobile Documents/com~apple~CloudDocs");
+        if icloud.is_dir() {
+            dialog = dialog.set_directory(icloud);
+        }
+    }
+    let Some(picked) = dialog.blocking_pick_folder() else { return Ok(None) };
+    let path = picked.into_path().map_err(|e| e.to_string())?;
+    let e = engine();
+    let mut s = e.settings.read().unwrap().clone();
+    s.sync_folder = Some(path.to_string_lossy().into_owned());
+    e.save_settings(s);
+    sync_now().map(Some)
+}
+
+#[tauri::command]
+fn stop_sync(forget: bool) -> Result<SyncStatus, String> {
+    let e = engine();
+    let mut s = e.settings.read().unwrap().clone();
+    s.sync_folder = None;
+    e.save_settings(s);
+    if forget {
+        e.store.lock().unwrap().forget_other_devices().map_err(|x| x.to_string())?;
+    }
+    e.notify();
+    sync_status()
+}
+
+#[tauri::command]
+async fn export_data(app: AppHandle) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let mut dialog = app
+        .dialog()
+        .file()
+        .set_title("Export your counters")
+        .set_file_name(format!("cmdnudge-{}.json", store::today()))
+        .add_filter("cmdnudge counters", &["json"]);
+    if let Ok(dir) = app.path().download_dir() {
+        dialog = dialog.set_directory(dir);
+    }
+    let Some(picked) = dialog.blocking_save_file() else { return Ok(None) };
+    let path = picked.into_path().map_err(|e| e.to_string())?;
+    sync::export(&engine().store.lock().unwrap(), &path, &store::today())?;
+    Ok(Some(path.to_string_lossy().into_owned()))
+}
+
+#[tauri::command]
+async fn import_data(app: AppHandle) -> Result<Option<sync::Report>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let Some(picked) = app
+        .dialog()
+        .file()
+        .set_title("Import counters from your other computer")
+        .add_filter("cmdnudge counters", &["json"])
+        .blocking_pick_file()
+    else {
+        return Ok(None);
+    };
+    let path = picked.into_path().map_err(|e| e.to_string())?;
+    let report = sync::import(&engine().store.lock().unwrap(), &path, &known_pair, &store::today())?;
+    engine().notify();
+    Ok(Some(report))
 }
 
 #[tauri::command]
@@ -349,6 +455,7 @@ fn refresh_tray(app: &AppHandle) {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             get_status,
             get_settings,
@@ -360,6 +467,11 @@ pub fn run() {
             request_permission,
             test_toast,
             export_data,
+            import_data,
+            sync_status,
+            sync_now,
+            choose_sync_folder,
+            stop_sync,
             reset_counts,
             get_library
         ])
@@ -445,6 +557,12 @@ pub fn run() {
                     test_toast(kind);
                 });
             }
+            // File sync (#16): a round at launch, then every five minutes while a folder is set.
+            std::thread::spawn(|| loop {
+                std::thread::sleep(std::time::Duration::from_secs(5));
+                let _ = run_sync();
+                std::thread::sleep(std::time::Duration::from_secs(295));
+            });
             if !e.settings.read().unwrap().onboarded {
                 show_window(app.handle(), Some("onboarding"));
             }

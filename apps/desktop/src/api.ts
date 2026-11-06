@@ -12,6 +12,7 @@ export interface Settings {
   mutedFamilies: string[];
   position: "bottom-right" | "bottom-left" | "top-center";
   onboarded: boolean;
+  syncFolder: string | null;
 }
 export interface RecentHint { from: string; to: string; label: string; guarded: boolean }
 export interface KeyCheck { pressed: string; family: string; meaning: string | null }
@@ -41,6 +42,9 @@ export interface CounterRow {
 }
 export interface RawRows { counters: CounterRow[]; daily: DailyRow[]; columns: [string, string[]][]; deviceId: string }
 
+export interface SyncReport { day: string; devices: number; rows: number; skippedRows: number; problems: string[] }
+export interface SyncStatus { folder: string | null; deviceId: string; last: SyncReport | null; devices: [string, number][] }
+
 export interface HabitRule {
   id: string; habit: string; action: string; family: string; layout: string; keyboard: string;
   windows: string; arrives: string; mac: string[]; guard: boolean; category: string;
@@ -62,7 +66,12 @@ export const api = {
   resume: () => invoke<void>("resume"),
   requestPermission: (kind: "input" | "accessibility") => invoke<boolean>("request_permission", { kind }),
   testToast: (kind: "hint" | "guard") => invoke<void>("test_toast", { kind }),
-  exportData: () => invoke<string>("export_data"),
+  exportData: () => invoke<string | null>("export_data"),
+  importData: () => invoke<SyncReport | null>("import_data"),
+  syncStatus: () => invoke<SyncStatus>("sync_status"),
+  syncNow: () => invoke<SyncStatus>("sync_now"),
+  chooseSyncFolder: () => invoke<SyncStatus | null>("choose_sync_folder"),
+  stopSync: (forget: boolean) => invoke<SyncStatus>("stop_sync", { forget }),
   resetCounts: () => invoke<void>("reset_counts"),
   library: async () => JSON.parse(await invoke<string>("get_library")) as Library,
 };

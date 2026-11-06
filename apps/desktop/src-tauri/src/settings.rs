@@ -32,6 +32,8 @@ pub struct Settings {
     /// "bottom-right" | "bottom-left" | "top-center"
     pub position: String,
     pub onboarded: bool,
+    /// Shared folder for file sync (#16); None = off.
+    pub sync_folder: Option<String>,
 }
 
 impl Default for Settings {
@@ -46,6 +48,7 @@ impl Default for Settings {
             muted_families: vec![],
             position: "bottom-right".into(),
             onboarded: false,
+            sync_folder: None,
         }
     }
 }

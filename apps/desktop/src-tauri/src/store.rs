@@ -189,6 +189,65 @@ impl Store {
         Ok(())
     }
 
+    /// This device's counter rows, the only rows it ever writes to a sync or export file.
+    pub fn own_rows(&self) -> rusqlite::Result<Vec<crate::sync::FileRow>> {
+        let mut st = self.conn.prepare(
+            "SELECT app_family, action_id, kind, count, first_seen_day, last_seen_day
+             FROM counter WHERE device_id = ?1 ORDER BY app_family, action_id, kind",
+        )?;
+        let rows = st.query_map(params![self.device_id], |r| {
+            Ok(crate::sync::FileRow {
+                app_family: r.get(0)?,
+                action_id: r.get(1)?,
+                kind: r.get(2)?,
+                count: r.get(3)?,
+                first_seen_day: r.get(4)?,
+                last_seen_day: r.get(5)?,
+            })
+        })?;
+        rows.collect()
+    }
+
+    /// Replaces every row of another device with the rows from its file. Never touches this
+    /// device's own rows, so a sync or import can not double-count or overwrite local progress.
+    pub fn replace_device(&self, device_id: &str, platform: &str, rows: &[crate::sync::FileRow]) -> rusqlite::Result<()> {
+        if device_id == self.device_id {
+            return Err(rusqlite::Error::InvalidParameterName("own device id".into()));
+        }
+        let tx = self.conn.unchecked_transaction()?;
+        tx.execute("DELETE FROM counter WHERE device_id = ?1", params![device_id])?;
+        {
+            let mut ins = tx.prepare("INSERT INTO counter VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)")?;
+            for r in rows {
+                ins.execute(params![
+                    device_id,
+                    platform,
+                    r.app_family,
+                    r.action_id,
+                    r.kind,
+                    r.count,
+                    r.first_seen_day,
+                    r.last_seen_day
+                ])?;
+            }
+        }
+        tx.commit()
+    }
+
+    /// Other devices whose rows are in the database, with their row count.
+    pub fn other_devices(&self) -> rusqlite::Result<Vec<(String, i64)>> {
+        let mut st = self.conn.prepare(
+            "SELECT device_id, COUNT(*) FROM counter WHERE device_id != ?1 GROUP BY device_id ORDER BY device_id",
+        )?;
+        let rows = st.query_map(params![self.device_id], |r| Ok((r.get(0)?, r.get(1)?)))?;
+        rows.collect()
+    }
+
+    pub fn forget_other_devices(&self) -> rusqlite::Result<()> {
+        self.conn.execute("DELETE FROM counter WHERE device_id != ?1", params![self.device_id])?;
+        Ok(())
+    }
+
     pub fn reset_counts(&self) -> rusqlite::Result<()> {
         self.conn.execute_batch("DELETE FROM counter; DELETE FROM daily;")
     }
