@@ -12,6 +12,9 @@ mod menu_tips;
 mod settings;
 mod store;
 mod sync;
+mod win_recorder;
+#[cfg(windows)]
+mod win;
 
 use engine::{Engine, KeyCheck, RecentHint, ToastSpec, ToastStyle};
 use serde::Serialize;
@@ -101,6 +104,7 @@ struct ActionStats {
     correct: i64,
     last_miss_day: Option<String>,
     mastered: bool,
+    win_uses: i64,
     top_family: String,
     windows: String,
     mac: String,
@@ -148,6 +152,7 @@ fn get_stats() -> Result<Stats, String> {
                 correct: p.correct,
                 last_miss_day: p.last_miss_day,
                 mastered: p.mastered,
+                win_uses: p.win_uses,
                 top_family,
                 windows: chord::format_windows(&rule.windows),
                 mac: chord::format_mac(&rule.mac[0]),
@@ -491,6 +496,12 @@ pub fn run() {
             e.on_changed(move || {
                 let _ = handle.emit("cmdnudge://changed", ());
                 refresh_tray(&handle);
+            });
+
+            // Windows (#17): count the library's Windows shortcuts; no toast, nothing blocked (D10).
+            #[cfg(windows)]
+            win::start(win_recorder::Recorder::new(library::get()), move |family, action| {
+                e.record_win_use(family, action);
             });
 
             #[cfg(target_os = "macos")]

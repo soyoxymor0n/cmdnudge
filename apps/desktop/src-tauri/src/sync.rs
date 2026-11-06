@@ -118,7 +118,7 @@ pub fn own_file(store: &Store, day: &str) -> rusqlite::Result<DeviceFile> {
     Ok(DeviceFile {
         format: FORMAT.into(),
         device_id: store.device_id.clone(),
-        platform: "mac".into(),
+        platform: crate::store::PLATFORM.into(),
         written_on: day.into(),
         counters: store.own_rows()?,
     })
@@ -275,6 +275,23 @@ mod tests {
         let r = sync_folder(&a, &dir, &known, "2026-11-06").unwrap();
         assert_eq!(r.devices, 1);
         assert_eq!(a.progress("2026-11-06").unwrap()[0].misses, 5);
+        std::fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn a_windows_computer_adds_its_uses_to_the_mac_ranking() {
+        // #17: the Windows recorder writes win_use rows into the same folder; the Mac sums them
+        // into win_uses next to its own misses.
+        let dir = tmpdir("win");
+        let mac = Store::in_memory().unwrap();
+        mac.record("system", "edit.copy", Kind::HabitMiss, "2026-11-05").unwrap();
+        let sync = sync_dir(&dir);
+        std::fs::create_dir_all(&sync).unwrap();
+        std::fs::write(sync.join("win-0a.json"), file("win-0a", vec![row("edit.copy", "win_use", 40)])).unwrap();
+        let r = sync_folder(&mac, &dir, &known, "2026-11-05").unwrap();
+        assert_eq!(r.devices, 1);
+        let p = mac.progress("2026-11-05").unwrap();
+        assert_eq!((p[0].misses, p[0].win_uses), (1, 40));
         std::fs::remove_dir_all(dir).ok();
     }
 

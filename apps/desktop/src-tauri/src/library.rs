@@ -28,8 +28,22 @@ pub struct AppFamily {
     pub id: String,
     pub label: String,
     pub mac: Vec<String>,
+    /// Windows executable names (#17).
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub windows: Vec<String>,
     #[serde(default)]
     pub exclude: Option<String>,
+}
+
+/// A Windows habit (the shortcut as pressed on Windows), used by the Windows recorder (#17).
+#[derive(Deserialize, Clone, Debug)]
+#[allow(dead_code)]
+pub struct Habit {
+    pub id: String,
+    pub action: String,
+    pub family: String,
+    pub windows: String,
 }
 
 #[derive(Deserialize, Clone, Debug, PartialEq)]
@@ -65,6 +79,9 @@ pub struct MacWay {
 pub struct Library {
     pub actions: Vec<Action>,
     pub app_families: Vec<AppFamily>,
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub habits: Vec<Habit>,
     pub habit_rules: Vec<HabitRule>,
     pub mac_ways: Vec<MacWay>,
 }

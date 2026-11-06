@@ -148,6 +148,22 @@ impl Engine {
         self.exclusion(&family, &settings) == Exclusion::None && !settings.muted_families.iter().any(|f| *f == family)
     }
 
+    /// Windows recorder (#17): one press of a library Windows shortcut in an app of this family.
+    /// Nothing while paused or for a family excluded from counting. Runs on the recorder's
+    /// worker thread, never in the hook.
+    #[allow(dead_code)]
+    pub fn record_win_use(&self, family: &str, action: &str) -> bool {
+        let settings = self.settings.read().unwrap().clone();
+        if settings.is_paused(now()) || self.exclusion(family, &settings) == Exclusion::All {
+            return false;
+        }
+        let ok = self.store.lock().unwrap().record(family, action, Kind::WinUse, &store::today()).is_ok();
+        if ok {
+            self.notify();
+        }
+        ok
+    }
+
     fn exclusion(&self, family: &str, settings: &Settings) -> Exclusion {
         let lib = library::get();
         if settings.include_families.iter().any(|f| f == family) {
@@ -346,6 +362,22 @@ mod tests {
         e.save_settings(s);
         let c = Chord { mods: CTRL, key: "c".into() };
         assert_eq!(e.on_key(&c, "com.google.Chrome", "Chrome", false), Decision::Replace(Pattern::parse("cmd+c").unwrap()));
+    }
+
+    #[test]
+    fn windows_uses_count_unless_paused() {
+        let e = engine();
+        assert!(e.record_win_use("browser", "browser.tab.reopen"));
+        assert!(e.record_win_use("system", "browser.tab.reopen"));
+        // Remote desktops and VMs are excluded from counting (the keys belong to the other machine).
+        assert!(!e.record_win_use("remote", "browser.tab.reopen"));
+        let mut s = e.settings.read().unwrap().clone();
+        s.paused_until = Some(now() + 3600);
+        e.save_settings(s);
+        assert!(!e.record_win_use("browser", "browser.tab.reopen"));
+        let p = e.store.lock().unwrap().progress(&store::today()).unwrap();
+        let row = p.iter().find(|p| p.action_id == "browser.tab.reopen").unwrap();
+        assert_eq!((row.win_uses, row.misses), (2, 0));
     }
 
     #[test]

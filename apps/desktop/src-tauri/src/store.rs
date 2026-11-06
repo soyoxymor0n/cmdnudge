@@ -11,13 +11,20 @@ use std::path::Path;
 pub enum Kind {
     HabitMiss,
     MacCorrect,
+    /// Windows recorder (#17): a library shortcut pressed on Windows.
+    #[allow(dead_code)]
+    WinUse,
 }
+
+/// Which side this build records for; also the device id prefix.
+pub const PLATFORM: &str = if cfg!(windows) { "win" } else { "mac" };
 
 impl Kind {
     pub fn id(self) -> &'static str {
         match self {
             Kind::HabitMiss => "habit_miss",
             Kind::MacCorrect => "mac_correct",
+            Kind::WinUse => "win_use",
         }
     }
 }
@@ -54,6 +61,8 @@ pub struct ActionProgress {
     pub correct: i64,
     pub last_miss_day: Option<String>,
     pub mastered: bool,
+    /// How often the Windows shortcut was pressed on synced Windows computers (#17).
+    pub win_uses: i64,
 }
 
 /// D12: mastered = at least 10 correct uses and no miss in the last 14 days.
@@ -116,10 +125,10 @@ impl Store {
     /// The only write path for key events: +1 on a library action counter and on the day's total.
     pub fn record(&self, family: &str, action_id: &str, kind: Kind, day: &str) -> rusqlite::Result<()> {
         self.conn.execute(
-            "INSERT INTO counter VALUES (?1, 'mac', ?2, ?3, ?4, 1, ?5, ?5)
+            "INSERT INTO counter VALUES (?1, ?6, ?2, ?3, ?4, 1, ?5, ?5)
              ON CONFLICT(device_id, platform, app_family, action_id, kind)
              DO UPDATE SET count = count + 1, last_seen_day = ?5",
-            params![self.device_id, family, action_id, kind.id(), day],
+            params![self.device_id, family, action_id, kind.id(), day, PLATFORM],
         )?;
         self.conn.execute(
             "INSERT INTO daily VALUES (?1, ?2, ?3, 1)
@@ -160,7 +169,8 @@ impl Store {
             "SELECT action_id,
                SUM(CASE WHEN kind='habit_miss' THEN count ELSE 0 END),
                SUM(CASE WHEN kind='mac_correct' THEN count ELSE 0 END),
-               MAX(CASE WHEN kind='habit_miss' THEN last_seen_day END)
+               MAX(CASE WHEN kind='habit_miss' THEN last_seen_day END),
+               SUM(CASE WHEN kind='win_use' THEN count ELSE 0 END)
              FROM counter GROUP BY action_id",
         )?;
         let rows = st.query_map([], |r| {
@@ -172,6 +182,7 @@ impl Store {
                 correct,
                 mastered: is_mastered(correct, last.as_deref(), today),
                 last_miss_day: last,
+                win_uses: r.get(4)?,
             })
         })?;
         rows.collect()
@@ -268,7 +279,7 @@ fn new_device_id() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
     let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
     let pid = std::process::id() as u128;
-    format!("mac-{:016x}", (nanos ^ (pid << 64)) as u64 ^ (nanos >> 64) as u64)
+    format!("{PLATFORM}-{:016x}", (nanos ^ (pid << 64)) as u64 ^ (nanos >> 64) as u64)
 }
 
 #[cfg(test)]
