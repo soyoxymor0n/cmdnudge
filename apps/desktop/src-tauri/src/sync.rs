@@ -258,6 +258,40 @@ pub fn apply_hosted(store: &Store, bytes: &[u8], known: &dyn Fn(&str, &str) -> b
     Ok(report)
 }
 
+/// Hosted sync (#18): uploads this device's rows to `<base_url>/api/sync` with the account's
+/// session token and applies the answer (the account's other devices). Waits on sign-in (Clerk,
+/// Open-4) for the token; the call itself is complete.
+#[allow(dead_code)]
+pub fn hosted_sync(store: &Store, base_url: &str, token: &str, known: &dyn Fn(&str, &str) -> bool, day: &str) -> Result<Report, String> {
+    let url = format!("{}/api/sync", base_url.trim_end_matches('/'));
+    if !(url.starts_with("https://") || url.starts_with("http://127.0.0.1:")) {
+        return Err("sync server must use https".into());
+    }
+    let body = serde_json::to_vec(&own_file(store, day).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
+    let res = ureq::post(&url)
+        .config()
+        .timeout_global(Some(std::time::Duration::from_secs(20)))
+        .build()
+        .header("Authorization", &format!("Bearer {token}"))
+        .content_type("application/json")
+        .send(&body[..]);
+    let mut res = match res {
+        Ok(r) => r,
+        Err(ureq::Error::StatusCode(401)) => return Err("signed out: sign in again".into()),
+        Err(ureq::Error::StatusCode(403)) => return Err("this computer is linked to another account".into()),
+        Err(ureq::Error::StatusCode(429)) => return Err("too many computers on this account".into()),
+        Err(ureq::Error::StatusCode(code)) => return Err(format!("the sync server answered {code}")),
+        Err(e) => return Err(format!("could not reach the sync server ({e})")),
+    };
+    let bytes = res
+        .body_mut()
+        .with_config()
+        .limit(MAX_FILE_BYTES * MAX_FILES as u64)
+        .read_to_vec()
+        .map_err(|e| format!("could not read the answer ({e})"))?;
+    apply_hosted(store, &bytes, known, day)
+}
+
 pub fn record_failure(day: &str, err: &str) {
     set_last(&Report { day: day.into(), problems: vec![err.into()], ..Default::default() });
 }
@@ -360,6 +394,62 @@ mod tests {
         assert_eq!((r.devices, r.rows, r.skipped_rows, r.problems.len()), (1, 1, 1, 2));
         let p = mac.progress("2026-11-07").unwrap();
         assert_eq!((p[0].misses, p[0].win_uses), (1, 40));
+    }
+
+    /// A one-shot HTTP server: hands back the request it got and answers with `status` + `body`.
+    fn serve_once(status: u16, body: String) -> (String, std::thread::JoinHandle<String>) {
+        use std::io::{Read, Write};
+        let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}", l.local_addr().unwrap());
+        let h = std::thread::spawn(move || {
+            let (mut s, _) = l.accept().unwrap();
+            let mut req = Vec::new();
+            let mut buf = [0u8; 8192];
+            loop {
+                let n = s.read(&mut buf).unwrap();
+                req.extend_from_slice(&buf[..n]);
+                let text = String::from_utf8_lossy(&req).to_string();
+                if let Some(end) = text.find("\r\n\r\n") {
+                    let len = text
+                        .lines()
+                        .find_map(|l| l.to_ascii_lowercase().strip_prefix("content-length:").map(|v| v.trim().parse::<usize>().unwrap()))
+                        .unwrap_or(0);
+                    if req.len() >= end + 4 + len {
+                        break;
+                    }
+                }
+                if n == 0 {
+                    break;
+                }
+            }
+            let reply = format!("HTTP/1.1 {status} X\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}", body.len());
+            s.write_all(reply.as_bytes()).unwrap();
+            String::from_utf8_lossy(&req).to_string()
+        });
+        (url, h)
+    }
+
+    #[test]
+    fn hosted_sync_uploads_own_rows_with_the_token_and_applies_the_answer() {
+        let mac = Store::in_memory().unwrap();
+        mac.record("system", "edit.copy", Kind::HabitMiss, "2026-11-07").unwrap();
+        let answer = serde_json::json!({ "format": FORMAT, "dropped": 0, "devices": [
+            { "deviceId": "win-0b", "platform": "win", "counters": [row("edit.copy", "win_use", 40)] }
+        ]});
+        let (url, h) = serve_once(200, answer.to_string());
+        let r = hosted_sync(&mac, &url, "sess_123", &known, "2026-11-07").unwrap();
+        let req = h.join().unwrap();
+        assert!(req.starts_with("POST /api/sync "));
+        assert!(req.to_ascii_lowercase().contains("authorization: bearer sess_123"));
+        assert!(req.contains(&format!("\"deviceId\":\"{}\"", mac.device_id)));
+        assert_eq!(r.devices, 1);
+        assert_eq!(mac.progress("2026-11-07").unwrap()[0].win_uses, 40);
+        // The server refusing (another account owns this id) changes nothing here.
+        let (url, h) = serve_once(403, "{}".into());
+        assert!(hosted_sync(&mac, &url, "sess_123", &known, "2026-11-07").unwrap_err().contains("another account"));
+        h.join().unwrap();
+        // Plain http to anything but this machine is refused before sending.
+        assert!(hosted_sync(&mac, "http://cmdnudge.com", "sess_123", &known, "2026-11-07").is_err());
     }
 
     #[test]
