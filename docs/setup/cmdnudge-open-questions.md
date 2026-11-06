@@ -12,7 +12,7 @@ Ordered by how much damage they do if left unresolved.
 
 | # | What conflicts | Where | Working assumption until confirmed |
 |---|---|---|---|
-| **C5** | The library is to be shared with Mac Mouse Fix NG and cmdnudge is MIT. MMF NG's repo is under the **MMF License** (Noah Nuebling): derived work must credit MMF, and there are conditions on published programs. The shortcut data in NG was written in this fork, but it sits in a repo under that licence | `context/02-interview-answers.md` (MIT, "sync with shared shortcut library from mmf ng"); MMF NG `License` | Treat the facts (shortcuts are vendor facts) as re-verifiable. Move the data the owner authored into `packages/library` under MIT with the owner as author, credit MMF NG, and re-check that no upstream-authored file is copied. **Owner confirms** |
+| ~~**C5**~~ | **Resolved 2026-11-06: owner chose to re-home the data they authored under MIT, crediting MMF NG.** The library is to be shared with Mac Mouse Fix NG and cmdnudge is MIT. MMF NG's repo is under the **MMF License** (Noah Nuebling): derived work must credit MMF, and there are conditions on published programs. The shortcut data in NG was written in this fork, but it sits in a repo under that licence | `context/02-interview-answers.md` (MIT, "sync with shared shortcut library from mmf ng"); MMF NG `License` | Treat the facts (shortcuts are vendor facts) as re-verifiable. Move the data the owner authored into `packages/library` under MIT with the owner as author, credit MMF NG, and re-check that no upstream-authored file is copied. **Owner confirms** |
 | **C1** | The brief's rule "Must = the demo moment, everything else Should/Later" vs. the owner putting every Should into the first public release | brief "MVP cut"; `context/02-interview-answers.md` round 2 | Two milestones: P0 private build (~11 person-days), then public release with P1 (~34). [`02-features.md`](02-features.md) |
 | **C6** | Hosted sync with an account is the default, but the brand promise is "no personal data". An account means an email address and a server (Clerk + Turso) that must be run, secured and covered by a privacy page, for a free tool | `context/02-interview-answers.md` ("2 by default, 1 as alternative") | Kept as decided: hosted by default, file sync offered on the same screen as an equal choice. Privacy page lists the email + counter rows. [`09-input-capture-and-privacy.md`](09-input-capture-and-privacy.md) |
 | **C4** | "Toast only" default vs. "guard destructive ones" default: the guard blocks keys, which needs Accessibility on the Mac, a heavier permission than a listen-only tap | round 1 vs round 4 | Onboarding asks for both permissions; without Accessibility the guard is off and the app says so |
@@ -26,7 +26,7 @@ Ordered by how much damage they do if left unresolved.
 
 | # | Decision | Why | Cost to reverse |
 |---|---|---|---|
-| **D1** | Desktop app on Tauri 2 (Rust core + React UI) for both platforms | one codebase, small binary, React reuse | **High** once capture exists; decide before code |
+| **D1** | Desktop app on Tauri 2 (Rust core + React UI) for both platforms. **Confirmed by owner 2026-11-06** | one codebase, small binary, React reuse | **High** once capture exists |
 | **D2** | One monorepo: `apps/desktop`, `apps/web`, `packages/library` | library, app and site change together | Low |
 | **D3** | Sync as per-device counters merged by sum, same rows for hosted and file sync | no conflicts, no CRDT | Medium (data migration) |
 | **D4** | Clerk sign-in through the system browser + deep link/loopback, token in Keychain/Credential Manager | Clerk has no Tauri SDK | Medium; see Open-4 |
@@ -49,7 +49,7 @@ Ordered by how much damage they do if left unresolved.
 
 | # | Question | Why it matters | Status |
 |---|---|---|---|
-| **Open-1** | Is there a target date for the private P0 build and the public release? | ~34 person-days total; nothing to plan against otherwise | Unresolved |
+| ~~**Open-1**~~ | Is there a target date for the private P0 build and the public release? | ~34 person-days total | **Answered 2026-11-06:** "Everything built tonight, as far as possible. Ready to be used tomorrow on mac". Sharpens C1: tonight's build is the Mac P0 for the owner's own Mac; P1 follows |
 | **Open-2** | Repo home: `soyoxymor0n/cmdnudge` or a `cmdnudge` GitHub organisation (handle is free)? | release URLs, brand | Unresolved |
 | **Open-3** | Can Accessibility reliably catch menu items picked with the mouse in every app (Electron, Catalyst, Java apps)? | P1 feature and landing claim | Needs a 1-day prototype |
 | **Open-4** | Current Clerk support for desktop/native sign-in (device flow, deep link)? | D4 design | Check before sync work |
@@ -73,6 +73,8 @@ Recorded so they are not re-litigated.
 
 ## What to confirm first
 
-1. **C5 — library licence.** Blocks extracting the shared library from MMF NG, which P0 data work starts with.
-2. **D1 — Tauri vs native Swift + .NET.** Blocks the first line of capture code; most expensive to reverse.
-3. **Open-1 — target dates**, so the P0/P1 split in [`02-features.md`](02-features.md) can be scheduled.
+~~C5, D1, Open-1~~ answered 2026-11-06 (MIT re-home, Tauri 2, build tonight for use on the Mac tomorrow). Next:
+
+1. **Open-8 — measure the habit table on the owner's Mac** (keyboard type + DE/AT), since the P0 guard depends on it.
+2. **Open-3 — menu-by-mouse prototype**, before it is promised anywhere.
+3. **Open-9 — Apple Developer account for signing**, so the P0 build runs without Gatekeeper friction.

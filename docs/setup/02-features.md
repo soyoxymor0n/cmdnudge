@@ -12,7 +12,7 @@
 
 ## Budget and deadline reality
 
-No deadline was given (open question **Open-1** in [`cmdnudge-open-questions.md`](cmdnudge-open-questions.md)). Estimated effort for a solo owner working with Claude:
+**Amendment 2026-11-06:** the owner set the target "everything built tonight, as far as possible, ready to be used tomorrow on mac" (Open-1 in [`cmdnudge-open-questions.md`](cmdnudge-open-questions.md)). Realistic for one night: the Mac P0 for the owner's own machine (local signing, no notarization, no sync, no Windows). Everything P1 follows. Estimated effort for a solo owner working with Claude:
 
 | Block | Person-days |
 |---|---|
