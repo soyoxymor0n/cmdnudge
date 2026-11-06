@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Connect the app · cmdnudge</title>
+    <meta name="description" content="Sign in to link the cmdnudge app to your account for sync." />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="/favicon.png" />
+    <script>
+      (function () {
+        var s = null;
+        try { s = localStorage.getItem('theme'); } catch (e) {}
+        var dark = s === 'dark' || ((!s || s === 'system') && matchMedia('(prefers-color-scheme: dark)').matches);
+        var r = document.documentElement;
+        r.classList.toggle('dark', dark);
+        r.setAttribute('data-theme', dark ? 'dark' : 'light');
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="/landing.css" />
+    <script src="/connect.js" type="module"></script>
+  </head>
+  <body>
+    <main class="legal connect">
+      <a class="back" href="/">← cmdnudge</a>
+      <h1>Connect the app</h1>
+      <p data-step="intro">Sign in, and this page hands the cmdnudge app a key for syncing counts between your computers. Only counts travel: which shortcut, how often, on which day.</p>
+      <div id="sign-in"></div>
+      <p class="card" data-step="status" role="status" aria-live="polite">Loading…</p>
+      <p data-step="again" hidden><a href="" data-open>Open cmdnudge again</a> if nothing happened.</p>
+    </main>
+  </body>
+</html>

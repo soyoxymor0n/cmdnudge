@@ -509,3 +509,4 @@ section { padding: clamp(80px, 11vw, 150px) var(--gutter); position: relative; }
   .hero .brandline { margin-bottom: 18px; }
   .hero-slot { margin-top: 20px; }
 }
+.connect #sign-in:not(:empty) { margin: 24px 0; }

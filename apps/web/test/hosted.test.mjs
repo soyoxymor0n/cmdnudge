@@ -7,6 +7,7 @@ import { generateKeyPairSync, createSign } from 'node:crypto';
 import { clerkVerifier } from '../server/clerk-token.mjs';
 import { tursoHttp } from '../server/turso-http.mjs';
 import { createSyncHandler, sqlStore, knownFrom, FORMAT } from '../server/sync.mjs';
+import { createLinkHandler, linkVerifier, hashToken } from '../server/link.mjs';
 
 let DatabaseSync = null;
 try {
@@ -109,32 +110,55 @@ test('Turso client: a failing statement rolls the whole batch back', { skip: !Da
   assert.equal(t.seen[0].auth, 'Bearer secret');
 });
 
-test('end to end: token -> handler -> Turso protocol, accounts kept apart', { skip: !DatabaseSync }, async () => {
+test('end to end: sign in -> link token -> sync over the Turso protocol, accounts kept apart', { skip: !DatabaseSync }, async () => {
   const t = fakeTurso();
   const store = sqlStore(tursoHttp('https://db.example', 'tok', t.fetchImpl));
   await store.init();
   const library = JSON.parse(readFileSync(new URL('../../../packages/library/dist/library.json', import.meta.url), 'utf8'));
-  const handle = createSyncHandler({ verify: clerkVerifier(pem, { now: () => NOW }), store, known: knownFrom(library), today: () => '2026-11-07' });
+  const link = createLinkHandler({ verifySession: clerkVerifier(pem, { now: () => NOW }), store, publishableKey: 'pk_test_x', today: () => '2026-11-07' });
+  const sync = createSyncHandler({ verify: linkVerifier(store), store, known: knownFrom(library), today: () => '2026-11-07' });
+  const req = (method, token, body) => new Request('https://x/api', { method, headers: token ? { authorization: `Bearer ${token}` } : {}, body: body && JSON.stringify(body) });
+  const linkFor = async (session) => (await (await link(req('POST', session))).json()).token;
   const row = (kind, count) => ({ app_family: 'system', action_id: 'edit.copy', kind, count, first_seen_day: '2026-11-05', last_seen_day: '2026-11-07' });
-  const send = (token, deviceId, counters) => handle(new Request('https://x/api/sync', {
-    method: 'POST',
-    headers: { authorization: `Bearer ${token}` },
-    body: JSON.stringify({ format: FORMAT, deviceId, platform: deviceId.slice(0, 3), writtenOn: '2026-11-07', counters }),
-  }));
-  assert.equal((await send(good(), 'win-0b', [row('win_use', 40)])).status, 200);
-  const answer = await (await send(good(), 'mac-0a', [row('habit_miss', 3)])).json();
+  const send = (token, deviceId, counters) => sync(req('POST', token, { format: FORMAT, deviceId, platform: deviceId.slice(0, 3), writtenOn: '2026-11-07', counters }));
+
+  assert.deepEqual(await (await link(req('GET'))).json(), { clerkPublishableKey: 'pk_test_x' });
+  const annaWin = await linkFor(good());
+  const annaMac = await linkFor(good());
+  const ben = await linkFor(good('user_ben'));
+  assert.match(annaWin, /^cn_[A-Za-z0-9_-]{43}$/);
+  assert.notEqual(annaWin, annaMac);
+  // Only the hash is stored.
+  const stored = t.db.prepare('SELECT token_hash FROM sync_link').all().map((r) => r.token_hash);
+  assert.ok(stored.includes(hashToken(annaWin)) && !stored.includes(annaWin));
+
+  assert.equal((await send(annaWin, 'win-0b', [row('win_use', 40)])).status, 200);
+  const answer = await (await send(annaMac, 'mac-0a', [row('habit_miss', 3)])).json();
   assert.deepEqual(answer.devices, [{ deviceId: 'win-0b', platform: 'win', counters: [row('win_use', 40)] }]);
-  // NEGATIVE: Ben with a valid token of his own cannot take over Anna's Windows computer.
-  assert.equal((await send(good('user_ben'), 'win-0b', [row('win_use', 1)])).status, 403);
-  // A forged token never reaches the database.
-  assert.equal((await send(jwt({ sub: 'user_anna', exp: NOW + 60 }, other), 'win-0b', [])).status, 401);
-  assert.deepEqual(t.db.prepare("SELECT user_id, count FROM sync_counter WHERE device_id='win-0b'").all().map((r) => [r.user_id, r.count]), [['user_anna', 40]]);
+  // NEGATIVE: Ben's own valid link cannot take over Anna's Windows computer.
+  assert.equal((await send(ben, 'win-0b', [row('win_use', 1)])).status, 403);
+  // NEGATIVE: a Clerk session token is not a link token, a forged session gets no link,
+  // and a made-up link token is refused.
+  assert.equal((await send(good(), 'win-0b', [])).status, 401);
+  assert.equal((await link(req('POST', jwt({ sub: 'user_anna', exp: NOW + 60 }, other)))).status, 401);
+  assert.equal((await send(`cn_${'A'.repeat(43)}`, 'win-0b', [])).status, 401);
+  // Unlinking (sign out) ends that token only.
+  assert.equal((await link(req('DELETE', annaWin))).status, 200);
+  assert.equal((await send(annaWin, 'win-0b', [])).status, 401);
+  assert.equal((await send(annaMac, 'mac-0a', [row('habit_miss', 3)])).status, 200);
+  // Deleting the account removes the remaining links too.
+  assert.equal((await sync(req('DELETE', annaMac))).status, 200);
+  assert.equal((await send(annaMac, 'mac-0a', [])).status, 401);
+  assert.deepEqual(t.db.prepare("SELECT user_id, count FROM sync_counter").all().map((r) => [r.user_id, r.count]), []);
 });
 
-test('the endpoint answers 503 until the database and Clerk key are configured', async () => {
-  for (const k of ['TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN', 'CLERK_JWT_KEY']) delete process.env[k];
-  const api = await import('../api/sync.mjs');
-  const r = await api.POST(new Request('https://x/api/sync', { method: 'POST', body: '{}' }));
-  assert.equal(r.status, 503);
-  assert.equal(typeof api.DELETE, 'function');
+test('both endpoints answer 503 until the database and Clerk keys are configured', async () => {
+  for (const k of ['TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN', 'CLERK_JWT_KEY', 'CLERK_PUBLISHABLE_KEY']) delete process.env[k];
+  const sync = await import('../api/sync.mjs');
+  const link = await import('../api/link.mjs');
+  assert.equal((await sync.POST(new Request('https://x/api/sync', { method: 'POST', body: '{}' }))).status, 503);
+  assert.equal((await link.GET(new Request('https://x/api/link'))).status, 503);
+  assert.equal(typeof sync.DELETE, 'function');
+  assert.equal(typeof link.POST, 'function');
+  assert.equal(typeof link.DELETE, 'function');
 });

@@ -81,6 +81,13 @@ export const SCHEMA = [
      PRIMARY KEY (device_id, app_family, action_id, kind)
    )`,
   `CREATE INDEX IF NOT EXISTS sync_counter_user ON sync_counter(user_id)`,
+  // Device links (#18): the long-lived token a signed-in app holds. Only its SHA-256 is stored.
+  `CREATE TABLE IF NOT EXISTS sync_link (
+     token_hash  TEXT PRIMARY KEY,
+     user_id     TEXT NOT NULL,
+     created_day TEXT NOT NULL
+   )`,
+  `CREATE INDEX IF NOT EXISTS sync_link_user ON sync_link(user_id)`,
 ];
 
 /** Storage on a libsql-shaped client (Turso in production, node:sqlite in tests). */
@@ -127,12 +134,27 @@ export function sqlStore(client) {
       });
       return r.rows;
     },
-    /** Delete account = every row of the user, one call. */
+    /** Delete account = every row of the user, links included, one call. */
     async deleteUser(userId) {
       await client.batch([
         { sql: 'DELETE FROM sync_counter WHERE user_id = ?', args: [userId] },
         { sql: 'DELETE FROM sync_device WHERE user_id = ?', args: [userId] },
+        { sql: 'DELETE FROM sync_link WHERE user_id = ?', args: [userId] },
       ]);
+    },
+    async addLink(hash, userId, day) {
+      await client.execute({ sql: 'INSERT INTO sync_link (token_hash, user_id, created_day) VALUES (?, ?, ?)', args: [hash, userId, day] });
+    },
+    async userOfLink(hash) {
+      const r = await client.execute({ sql: 'SELECT user_id FROM sync_link WHERE token_hash = ?', args: [hash] });
+      return r.rows[0]?.user_id ?? null;
+    },
+    async linkCount(userId) {
+      const r = await client.execute({ sql: 'SELECT COUNT(*) AS n FROM sync_link WHERE user_id = ?', args: [userId] });
+      return Number(r.rows[0]?.n ?? 0);
+    },
+    async removeLink(hash) {
+      await client.execute({ sql: 'DELETE FROM sync_link WHERE token_hash = ?', args: [hash] });
     },
   };
 }
