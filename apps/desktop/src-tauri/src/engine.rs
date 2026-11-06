@@ -27,6 +27,8 @@ pub enum ToastStyle {
     Hint,
     Guard,
     Quiet,
+    /// Mouse-to-menu tip: neutral, "Tip" in front (04-design.md item 6).
+    Tip,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -133,6 +135,17 @@ impl Engine {
             "pc" => Keyboard::Pc,
             _ => Keyboard::Apple,
         }
+    }
+
+    /// Whether a mouse-to-menu tip may show for this app now: switched on, not paused, and the
+    /// app family is neither excluded nor muted.
+    pub fn menu_tips_allowed(&self, bundle_id: &str) -> bool {
+        let settings = self.settings.read().unwrap().clone();
+        if !settings.menu_tips || settings.is_paused(now()) {
+            return false;
+        }
+        let family = library::get().family_of(bundle_id).id.clone();
+        self.exclusion(&family, &settings) == Exclusion::None && !settings.muted_families.iter().any(|f| *f == family)
     }
 
     fn exclusion(&self, family: &str, settings: &Settings) -> Exclusion {

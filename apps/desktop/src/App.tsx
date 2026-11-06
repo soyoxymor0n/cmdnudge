@@ -550,6 +550,16 @@ function SettingsView(p: { status: Status; settings: Settings; save: (s: Partial
             <em>Stops right ⌘Q from the AltGr+Q “@” habit before it quits your app. Left ⌘Q always works.</em>
           </span>
         </label>
+        <label className="switch-row">
+          <input type="checkbox" checked={settings.menuTips} onChange={(e) => save({ menuTips: e.target.checked })} />
+          <span>
+            <b>Tips for menu items you click (experimental)</b>
+            <em>
+              The third time you pick a menu item with the mouse, cmdnudge shows its shortcut once. Needs Accessibility. Menu names are
+              only held while the menu is open, never stored.
+            </em>
+          </span>
+        </label>
         <div className="row">
           <button className="btn ghost" onClick={() => api.testToast("hint")}>Show a sample hint</button>
           <button className="btn ghost" onClick={() => api.testToast("guard")}>Show the guard</button>

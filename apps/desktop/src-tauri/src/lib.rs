@@ -8,6 +8,7 @@ mod library;
 #[cfg(target_os = "macos")]
 mod mac;
 mod matcher;
+mod menu_tips;
 mod settings;
 mod store;
 mod sync;
@@ -515,6 +516,7 @@ pub fn run() {
                     std::thread::sleep(std::time::Duration::from_secs(2));
                 });
                 mac::tap::start(e);
+                mac::menus::start(e);
                 // Tray status follows the tap state (permissions can be granted at any time).
                 let handle = app.handle().clone();
                 std::thread::spawn(move || {

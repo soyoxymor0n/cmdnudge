@@ -34,6 +34,8 @@ pub struct Settings {
     pub onboarded: bool,
     /// Shared folder for file sync (#16); None = off.
     pub sync_folder: Option<String>,
+    /// Tips for menu items picked with the mouse (#19). Experimental, off by default.
+    pub menu_tips: bool,
 }
 
 impl Default for Settings {
@@ -49,6 +51,7 @@ impl Default for Settings {
             position: "bottom-right".into(),
             onboarded: false,
             sync_folder: None,
+            menu_tips: false,
         }
     }
 }

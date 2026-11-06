@@ -13,6 +13,7 @@ export interface Settings {
   position: "bottom-right" | "bottom-left" | "top-center";
   onboarded: boolean;
   syncFolder: string | null;
+  menuTips: boolean;
 }
 export interface RecentHint { from: string; to: string; label: string; guarded: boolean }
 export interface KeyCheck { pressed: string; family: string; meaning: string | null }

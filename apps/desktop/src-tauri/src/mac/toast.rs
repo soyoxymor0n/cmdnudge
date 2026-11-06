@@ -164,7 +164,7 @@ fn show_main(spec: ToastSpec) {
             t.to.setTextColor(Some(&NSColor::labelColor()));
             t.detail.setFont(Some(&NSFont::systemFontOfSize_weight(small, 0.0)));
             t.detail.setTextColor(Some(&NSColor::secondaryLabelColor()));
-            t.arrow.setStringValue(&NSString::from_str("→"));
+            t.arrow.setStringValue(&NSString::from_str(if spec.style == ToastStyle::Tip { "·" } else { "→" }));
         }
         t.arrow.setFont(Some(&NSFont::systemFontOfSize_weight(big - 3.0, 0.0)));
         t.arrow.setTextColor(Some(&NSColor::tertiaryLabelColor()));
