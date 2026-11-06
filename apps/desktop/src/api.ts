@@ -46,6 +46,8 @@ export interface CounterRow {
 export interface RawRows { counters: CounterRow[]; daily: DailyRow[]; columns: [string, string[]][]; deviceId: string }
 
 export interface SyncReport { day: string; devices: number; rows: number; skippedRows: number; problems: string[] }
+export type Availability = "open" | "notYet" | "offline";
+export interface HostedStatus { server: string; availability: Availability; linked: boolean; error: string | null }
 export interface SyncStatus { folder: string | null; deviceId: string; last: SyncReport | null; devices: [string, number][] }
 
 export interface HabitRule {
@@ -75,6 +77,10 @@ export const api = {
   syncNow: () => invoke<SyncStatus>("sync_now"),
   chooseSyncFolder: () => invoke<SyncStatus | null>("choose_sync_folder"),
   stopSync: (forget: boolean) => invoke<SyncStatus>("stop_sync", { forget }),
+  hostedStatus: () => invoke<HostedStatus>("hosted_status"),
+  hostedConnect: () => invoke<void>("hosted_connect"),
+  hostedSyncNow: () => invoke<SyncStatus>("hosted_sync_now"),
+  hostedDisconnect: (forget: boolean) => invoke<SyncStatus>("hosted_disconnect", { forget }),
   resetCounts: () => invoke<void>("reset_counts"),
   library: async () => JSON.parse(await invoke<string>("get_library")) as Library,
 };

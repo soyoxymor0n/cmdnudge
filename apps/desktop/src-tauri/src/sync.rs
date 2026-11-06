@@ -15,6 +15,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 pub const FORMAT: &str = "cmdnudge-counters/1";
+/// hosted_sync's error when the server no longer knows the link token.
+pub const SIGNED_OUT: &str = "signed out: connect again";
 pub const SUBDIR: &str = "cmdnudge-sync";
 const MAX_FILE_BYTES: u64 = 2 * 1024 * 1024;
 const MAX_ROWS: usize = 20_000;
@@ -230,7 +232,6 @@ struct HostedResponse {
 /// Hosted sync (#18), client side of the contract in apps/web/server/sync.mjs: the server answers
 /// an upload with the rows of the account's other devices. They go through the same checks as a
 /// file from the shared folder, then replace that device's rows here.
-#[allow(dead_code)]
 pub fn apply_hosted(store: &Store, bytes: &[u8], known: &dyn Fn(&str, &str) -> bool, day: &str) -> Result<Report, String> {
     if bytes.len() as u64 > MAX_FILE_BYTES * MAX_FILES as u64 {
         return Err("answer too large".into());
@@ -258,16 +259,16 @@ pub fn apply_hosted(store: &Store, bytes: &[u8], known: &dyn Fn(&str, &str) -> b
     Ok(report)
 }
 
-/// Hosted sync (#18): uploads this device's rows to `<base_url>/api/sync` with the account's
-/// session token and applies the answer (the account's other devices). Waits on sign-in (Clerk,
-/// Open-4) for the token; the call itself is complete.
-#[allow(dead_code)]
-pub fn hosted_sync(store: &Store, base_url: &str, token: &str, known: &dyn Fn(&str, &str) -> bool, day: &str) -> Result<Report, String> {
+/// Hosted sync (#18): uploads this device's rows to `<base_url>/api/sync` with the app's link
+/// token and applies the answer (the account's other devices). The store is only locked to read
+/// this device's rows and to apply the answer, never during the network call.
+pub fn hosted_sync(store: &Mutex<Store>, base_url: &str, token: &str, known: &dyn Fn(&str, &str) -> bool, day: &str) -> Result<Report, String> {
     let url = format!("{}/api/sync", base_url.trim_end_matches('/'));
     if !(url.starts_with("https://") || url.starts_with("http://127.0.0.1:")) {
         return Err("sync server must use https".into());
     }
-    let body = serde_json::to_vec(&own_file(store, day).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
+    let own = own_file(&store.lock().unwrap(), day).map_err(|e| e.to_string())?;
+    let body = serde_json::to_vec(&own).map_err(|e| e.to_string())?;
     let res = ureq::post(&url)
         .config()
         .timeout_global(Some(std::time::Duration::from_secs(20)))
@@ -277,7 +278,7 @@ pub fn hosted_sync(store: &Store, base_url: &str, token: &str, known: &dyn Fn(&s
         .send(&body[..]);
     let mut res = match res {
         Ok(r) => r,
-        Err(ureq::Error::StatusCode(401)) => return Err("signed out: sign in again".into()),
+        Err(ureq::Error::StatusCode(401)) => return Err(SIGNED_OUT.into()),
         Err(ureq::Error::StatusCode(403)) => return Err("this computer is linked to another account".into()),
         Err(ureq::Error::StatusCode(429)) => return Err("too many computers on this account".into()),
         Err(ureq::Error::StatusCode(code)) => return Err(format!("the sync server answered {code}")),
@@ -289,7 +290,7 @@ pub fn hosted_sync(store: &Store, base_url: &str, token: &str, known: &dyn Fn(&s
         .limit(MAX_FILE_BYTES * MAX_FILES as u64)
         .read_to_vec()
         .map_err(|e| format!("could not read the answer ({e})"))?;
-    apply_hosted(store, &bytes, known, day)
+    apply_hosted(&store.lock().unwrap(), &bytes, known, day)
 }
 
 pub fn record_failure(day: &str, err: &str) {
@@ -431,8 +432,8 @@ mod tests {
 
     #[test]
     fn hosted_sync_uploads_own_rows_with_the_token_and_applies_the_answer() {
-        let mac = Store::in_memory().unwrap();
-        mac.record("system", "edit.copy", Kind::HabitMiss, "2026-11-07").unwrap();
+        let mac = Mutex::new(Store::in_memory().unwrap());
+        mac.lock().unwrap().record("system", "edit.copy", Kind::HabitMiss, "2026-11-07").unwrap();
         let answer = serde_json::json!({ "format": FORMAT, "dropped": 0, "devices": [
             { "deviceId": "win-0b", "platform": "win", "counters": [row("edit.copy", "win_use", 40)] }
         ]});
@@ -441,9 +442,9 @@ mod tests {
         let req = h.join().unwrap();
         assert!(req.starts_with("POST /api/sync "));
         assert!(req.to_ascii_lowercase().contains("authorization: bearer sess_123"));
-        assert!(req.contains(&format!("\"deviceId\":\"{}\"", mac.device_id)));
+        assert!(req.contains(&format!("\"deviceId\":\"{}\"", mac.lock().unwrap().device_id)));
         assert_eq!(r.devices, 1);
-        assert_eq!(mac.progress("2026-11-07").unwrap()[0].win_uses, 40);
+        assert_eq!(mac.lock().unwrap().progress("2026-11-07").unwrap()[0].win_uses, 40);
         // The server refusing (another account owns this id) changes nothing here.
         let (url, h) = serve_once(403, "{}".into());
         assert!(hosted_sync(&mac, &url, "sess_123", &known, "2026-11-07").unwrap_err().contains("another account"));

@@ -11,6 +11,7 @@ mod matcher;
 mod menu_tips;
 mod settings;
 mod store;
+mod hosted;
 mod sync;
 mod win_recorder;
 #[cfg(windows)]
@@ -337,6 +338,104 @@ fn stop_sync(forget: bool) -> Result<SyncStatus, String> {
     sync_status()
 }
 
+/* ---------- Sync with an account (#18) ---------------------------------------------------- */
+
+static HOSTED_ERROR: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
+
+fn hosted_token() -> Option<String> {
+    engine().store.lock().unwrap().setting(hosted::TOKEN_KEY)
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct HostedStatus {
+    server: String,
+    availability: hosted::Availability,
+    linked: bool,
+    error: Option<String>,
+}
+
+#[tauri::command]
+async fn hosted_status() -> HostedStatus {
+    let server = hosted::server();
+    HostedStatus {
+        availability: hosted::availability(&server),
+        server,
+        linked: hosted_token().is_some(),
+        error: HOSTED_ERROR.lock().unwrap().clone(),
+    }
+}
+
+/// One round of account sync if this app is linked. None when it is not.
+fn run_hosted() -> Option<Result<sync::Report, String>> {
+    let token = hosted_token()?;
+    let e = engine();
+    let day = store::today();
+    let res = sync::hosted_sync(&e.store, &hosted::server(), &token, &known_pair, &day);
+    match &res {
+        Ok(_) => *HOSTED_ERROR.lock().unwrap() = None,
+        Err(err) => {
+            if err == sync::SIGNED_OUT {
+                // The server no longer knows this link (unlinked elsewhere, account deleted).
+                let _ = e.store.lock().unwrap().remove_setting(hosted::TOKEN_KEY);
+            }
+            *HOSTED_ERROR.lock().unwrap() = Some(err.clone());
+            sync::record_failure(&day, err);
+        }
+    }
+    e.notify();
+    Some(res)
+}
+
+#[tauri::command]
+fn hosted_connect(app: AppHandle) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    let url = hosted::begin_link(&hosted::server());
+    app.opener().open_url(url, None::<&str>).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn hosted_sync_now() -> Result<SyncStatus, String> {
+    match run_hosted() {
+        Some(Err(e)) => Err(e),
+        _ => sync_status(),
+    }
+}
+
+#[tauri::command]
+async fn hosted_disconnect(forget: bool) -> Result<SyncStatus, String> {
+    let e = engine();
+    if let Some(token) = hosted_token() {
+        hosted::unlink(&hosted::server(), &token);
+    }
+    {
+        let store = e.store.lock().unwrap();
+        store.remove_setting(hosted::TOKEN_KEY).map_err(|x| x.to_string())?;
+        if forget {
+            store.forget_other_devices().map_err(|x| x.to_string())?;
+        }
+    }
+    *HOSTED_ERROR.lock().unwrap() = None;
+    e.notify();
+    sync_status()
+}
+
+/// `cmdnudge://link?...` from the /connect page after sign-in.
+fn on_deep_link(app: &AppHandle, url: &str) {
+    match hosted::finish_link(url) {
+        Ok(token) => {
+            let _ = engine().store.lock().unwrap().set_setting(hosted::TOKEN_KEY, &token);
+            *HOSTED_ERROR.lock().unwrap() = None;
+            std::thread::spawn(|| {
+                let _ = run_hosted();
+            });
+        }
+        Err(err) => *HOSTED_ERROR.lock().unwrap() = Some(err),
+    }
+    show_window(app, Some("settings"));
+    let _ = app.emit("cmdnudge://changed", ());
+}
+
 #[tauri::command]
 async fn export_data(app: AppHandle) -> Result<Option<String>, String> {
     use tauri_plugin_dialog::DialogExt;
@@ -461,6 +560,7 @@ fn refresh_tray(app: &AppHandle) {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             get_status,
@@ -477,6 +577,10 @@ pub fn run() {
             sync_status,
             sync_now,
             choose_sync_folder,
+            hosted_status,
+            hosted_connect,
+            hosted_sync_now,
+            hosted_disconnect,
             stop_sync,
             reset_counts,
             get_library
@@ -570,10 +674,22 @@ pub fn run() {
                     test_toast(kind);
                 });
             }
-            // File sync (#16): a round at launch, then every five minutes while a folder is set.
+            // Account sync (#18): the /connect page hands the link back through cmdnudge://link.
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                let handle = app.handle().clone();
+                app.deep_link().on_open_url(move |event| {
+                    for url in event.urls() {
+                        on_deep_link(&handle, url.as_str());
+                    }
+                });
+            }
+            // File sync (#16) and account sync (#18): a round at launch, then every five minutes
+            // for whichever is switched on.
             std::thread::spawn(|| loop {
                 std::thread::sleep(std::time::Duration::from_secs(5));
                 let _ = run_sync();
+                let _ = run_hosted();
                 std::thread::sleep(std::time::Duration::from_secs(295));
             });
             if !e.settings.read().unwrap().onboarded {

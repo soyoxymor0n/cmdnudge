@@ -472,6 +472,61 @@ function reportLine(r: SyncReport): string {
   return `${who}${skipped}. Last sync ${r.day}.`;
 }
 
+/** Sync with an account (#18). The button stays off until the server accepts accounts. */
+function AccountSyncCard() {
+  const [hosted, reload] = useLive(api.hostedStatus, 30000);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const run = (p: Promise<unknown>, done?: string) => {
+    setBusy(true);
+    setNote("");
+    p.then(() => done && setNote(done))
+      .catch((e) => setNote(String(e)))
+      .finally(() => {
+        setBusy(false);
+        reload();
+      });
+  };
+  if (!hosted) return null;
+  const host = hosted.server.replace(/^https?:\/\//, "");
+  return (
+    <section className="card">
+      <h2>Sync with an account</h2>
+      <p className="muted small">
+        No shared folder needed: sign in on {host} and this computer sends the same counters there, and gets back the
+        ones from your other computers. Only counts, never keys or text.
+      </p>
+      {hosted.linked ? (
+        <div className="row">
+          <span className="k">Connected to {host}</span>
+          <span className="grow" />
+          <button className="btn" disabled={busy} onClick={() => run(api.hostedSyncNow(), "Synced.")}>Sync now</button>
+          <button className="btn ghost" disabled={busy} onClick={() => run(api.hostedDisconnect(false), "Signed out. Counts from other computers stay until you remove them.")}>Sign out</button>
+        </div>
+      ) : (
+        <div className="row">
+          <button
+            className="btn"
+            disabled={busy || hosted.availability !== "open"}
+            onClick={() => run(api.hostedConnect(), "Finish signing in in your browser. cmdnudge picks it up from there.")}
+          >
+            Sign in…
+          </button>
+          <span className="muted small">
+            {hosted.availability === "open"
+              ? "Opens your browser."
+              : hosted.availability === "notYet"
+                ? "Not open yet. Folder sync above works today."
+                : `Can't reach ${host} right now.`}
+          </span>
+        </div>
+      )}
+      {hosted.error && <p className="muted small warn">{hosted.error}</p>}
+      {note && <p className="note">{note}</p>}
+    </section>
+  );
+}
+
 function SyncCard() {
   const [sync, reload] = useLive(api.syncStatus, 5000);
   const [note, setNote] = useState("");
@@ -648,6 +703,7 @@ function SettingsView(p: { status: Status; settings: Settings; save: (s: Partial
       </section>
 
       <SyncCard />
+      <AccountSyncCard />
 
       <section className="card">
         <h2>What is stored</h2>
