@@ -46,4 +46,6 @@ issues (`built` label = committed). Decisions waiting on the owner: issues label
    `win_use`. #18 goes live without new code: after #22 and Open-4, create Turso `cmdnudge` +
    `cmdnudge-preview` and a Clerk instance (allow `https://cmdnudge.com/connect` as redirect), set
    `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `CLERK_JWT_KEY`, `CLERK_PUBLISHABLE_KEY` per Vercel
-   environment, and add an "Account sync" section to the privacy page (it says there is no account).
+   environment, then finish the privacy page: its "Accounts and sign-in" section is drafted but names no
+   providers or processors yet - add the enabled Clerk sign-in providers, Clerk and Turso (what each
+   sees, region), and drop "There is no account" from the short version.
