@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Imprint · cmdnudge</title>
+    <meta name="description" content="Who runs cmdnudge." />
+    <link rel="icon" href="/favicon.png" />
+    <script>
+      (function () {
+        var s = null;
+        try { s = localStorage.getItem('theme'); } catch (e) {}
+        var dark = s === 'dark' || ((!s || s === 'system') && matchMedia('(prefers-color-scheme: dark)').matches);
+        var r = document.documentElement;
+        r.classList.toggle('dark', dark);
+        r.setAttribute('data-theme', dark ? 'dark' : 'light');
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="/landing.css" />
+    <script src="/legal.js" defer></script>
+  </head>
+  <body>
+    <main class="legal">
+      <a class="back" href="/" data-back>← Back to cmdnudge</a>
+      <h1>Imprint</h1>
+      <p class="updated">Last updated: 7 November 2026</p>
+      <p>Patrick Reichmann<br />Vienna, Austria<br /><a href="mailto:hello@cmdnudge.com">hello@cmdnudge.com</a></p>
+      <p>Media owner, publisher and responsible for content: Patrick Reichmann.</p>
+      <p>cmdnudge is a free, open-source project under the MIT licence. Source code: <a href="https://github.com/soyoxymor0n/cmdnudge">github.com/soyoxymor0n/cmdnudge</a>.</p>
+      <p>Apple, Mac, macOS and Windows are trademarks of their owners. cmdnudge is not affiliated with Apple Inc. or Microsoft Corporation.</p>
+    </main>
+    <footer class="foot"><div class="foot-inner"><a class="logo" href="/"><img src="/icon.png" alt="" width="22" height="22" /><span>cmdnudge</span></a><nav aria-label="Footer"><a href="https://github.com/soyoxymor0n/cmdnudge">GitHub</a><a href="/privacy">Privacy</a><a href="/imprint">Imprint</a></nav></div></footer>
+  </body>
+</html>

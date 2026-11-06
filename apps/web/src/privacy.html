@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy · cmdnudge</title>
+    <meta name="description" content="What the cmdnudge Mac app and this website collect: nothing that leaves your Mac." />
+    <link rel="icon" href="/favicon.png" />
+    <script>
+      (function () {
+        var s = null;
+        try { s = localStorage.getItem('theme'); } catch (e) {}
+        var dark = s === 'dark' || ((!s || s === 'system') && matchMedia('(prefers-color-scheme: dark)').matches);
+        var r = document.documentElement;
+        r.classList.toggle('dark', dark);
+        r.setAttribute('data-theme', dark ? 'dark' : 'light');
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="/landing.css" />
+    <script src="/legal.js" defer></script>
+  </head>
+  <body>
+    <main class="legal">
+      <a class="back" href="/" data-back>← Back to cmdnudge</a>
+      <h1>Privacy</h1>
+      <p class="updated">Last updated: 7 November 2026</p>
+      <p>cmdnudge is operated by Patrick Reichmann, Vienna, Austria (contact: <a href="mailto:hello@cmdnudge.com">hello@cmdnudge.com</a>). This page covers two things: the cmdnudge app for macOS, and this website, cmdnudge.com.</p>
+
+      <h2>The short version</h2>
+      <p>The app keeps a few counters on your Mac and sends nothing anywhere. This website sets no cookies and runs no analytics. There is no account.</p>
+
+      <h2>Information the app handles</h2>
+      <div class="card"><b>Key presses, briefly, in memory.</b> To notice a Windows habit, macOS lets the app see each key press. A filter (<a href="https://github.com/soyoxymor0n/cmdnudge/blob/main/apps/desktop/src-tauri/src/filter.rs">filter.rs</a>) throws away everything that is not a key combination (letters, numbers, Shift+letter, Space, Return) on the spot. Combinations are compared with the habit map and then forgotten as well.</div>
+      <div class="card"><b>Counters, on your Mac.</b> For each known habit and app family (for example “Copy, in a chat app”): how often you used the Windows habit, how often the Mac shortcut, and the first and last day it happened. Plus one total per day. Days, never times.</div>
+      <div class="card"><b>Settings, on your Mac.</b> Your choices (mode, guard, keyboard, layout, muted app families) and a random device id that only labels your own rows.</div>
+      <div class="card"><b>The frontmost app, briefly, in memory.</b> Its bundle id decides which app family applies; its name appears in a guard message (“would quit Slack”). Neither is stored.</div>
+      <p>The app never stores what you type, which keys you pressed, the time of day, window titles or app names. The schema has no column for any of them; a test in the source code (<code>scripted_session_stores_only_library_counters</code>) checks this.</p>
+
+      <h2>How the information is used</h2>
+      <p>Only to show you hints, block the right-⌘Q collision if you keep the guard on, and show your own progress in the app. Nothing is used for advertising, profiling or training any model.</p>
+
+      <h2>What we do not do</h2>
+      <p>No ad profiles, no tracking across sites or apps, no selling or sharing of data, no data brokers. There is no AI model involved anywhere in cmdnudge.</p>
+
+      <h2>This website</h2>
+      <p>cmdnudge.com is a static site hosted by Vercel Inc. Vercel processes standard request data (IP address, user agent, time) to deliver the pages and keep them safe; we do not read or keep these logs. Fonts come from Google Fonts, which sees the same request data when your browser loads them. The “try it” box on the home page runs entirely in your browser; nothing you press there is sent anywhere. The site remembers your colour theme in your browser's local storage, and nothing else.</p>
+
+      <h2>Data security</h2>
+      <p>The counters live in a SQLite file in the app's folder on your Mac (~/Library/Application Support/com.cmdnudge.app), protected by your macOS account like your other files. The website is served over HTTPS only.</p>
+
+      <h2>How long we keep things</h2>
+      <p>On your Mac, until you delete them: settings → “Delete all counts” removes all counters and daily totals at once; uninstalling the app and its folder removes everything. On our side there is nothing to keep, because nothing reaches us.</p>
+
+      <h2>Accounts and sign-in</h2>
+      <p>This version has no account and no sign-in. If optional sync is added later, this page will say exactly what it stores before it ships, and it will stay optional.</p>
+
+      <h2>Who this is for</h2>
+      <p>cmdnudge is meant for people aged 16 and over.</p>
+
+      <h2>Third parties</h2>
+      <p>The app talks to no third party. The website uses Vercel (hosting, request data as above) and Google Fonts (font files, request data as above). We do not sell personal data.</p>
+
+      <h2>Your rights</h2>
+      <p>Everything the app keeps is on your Mac and under your control: settings → “What is stored” shows the raw rows (“Show the raw rows”), “Export counters” writes them to a JSON file in your Downloads folder, and “Delete all counts” removes them. Under the GDPR you also have the right to access, correction, deletion and to complain to a supervisory authority (in Austria: the Datenschutzbehörde, dsb.gv.at). Write to hello@cmdnudge.com and you will get an answer within 30 days, though we will usually have nothing about you to show.</p>
+
+      <h2>Changes to this policy</h2>
+      <p>If what the app or the site handles changes, this page changes first and the date at the top moves. The history is public in the <a href="https://github.com/soyoxymor0n/cmdnudge/commits/main/apps/web/src/privacy.html">repository</a>.</p>
+
+      <h2>Contact</h2>
+      <p>Patrick Reichmann, Vienna, Austria · <a href="mailto:hello@cmdnudge.com">hello@cmdnudge.com</a></p>
+    </main>
+    <footer class="foot"><div class="foot-inner"><a class="logo" href="/"><img src="/icon.png" alt="" width="22" height="22" /><span>cmdnudge</span></a><nav aria-label="Footer"><a href="https://github.com/soyoxymor0n/cmdnudge">GitHub</a><a href="/privacy">Privacy</a><a href="/imprint">Imprint</a></nav></div></footer>
+  </body>
+</html>
