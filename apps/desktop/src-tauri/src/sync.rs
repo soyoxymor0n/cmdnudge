@@ -85,7 +85,11 @@ pub fn parse(bytes: &[u8], known: &dyn Fn(&str, &str) -> bool) -> Result<(Device
     if bytes.len() as u64 > MAX_FILE_BYTES {
         return Err("file is larger than 2 MB".into());
     }
-    let mut f: DeviceFile = serde_json::from_slice(bytes).map_err(|_| "not a cmdnudge counters file".to_string())?;
+    let f: DeviceFile = serde_json::from_slice(bytes).map_err(|_| "not a cmdnudge counters file".to_string())?;
+    check(f, known)
+}
+
+fn check(mut f: DeviceFile, known: &dyn Fn(&str, &str) -> bool) -> Result<(DeviceFile, usize), String> {
     if f.format != FORMAT {
         return Err(format!("unknown format {:?}", f.format.chars().take(40).collect::<String>()));
     }
@@ -209,6 +213,51 @@ pub fn sync_folder(store: &Store, folder: &Path, known: &dyn Fn(&str, &str) -> b
 }
 
 /// Records a failed round so the settings screen can say why.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct HostedDevice {
+    device_id: String,
+    platform: String,
+    counters: Vec<FileRow>,
+}
+
+#[derive(Deserialize)]
+struct HostedResponse {
+    format: String,
+    devices: Vec<HostedDevice>,
+}
+
+/// Hosted sync (#18), client side of the contract in apps/web/server/sync.mjs: the server answers
+/// an upload with the rows of the account's other devices. They go through the same checks as a
+/// file from the shared folder, then replace that device's rows here.
+#[allow(dead_code)]
+pub fn apply_hosted(store: &Store, bytes: &[u8], known: &dyn Fn(&str, &str) -> bool, day: &str) -> Result<Report, String> {
+    if bytes.len() as u64 > MAX_FILE_BYTES * MAX_FILES as u64 {
+        return Err("answer too large".into());
+    }
+    let r: HostedResponse = serde_json::from_slice(bytes).map_err(|_| "not a sync answer".to_string())?;
+    if r.format != FORMAT {
+        return Err("unknown format".into());
+    }
+    let mut report = Report { day: day.into(), ..Default::default() };
+    for d in r.devices.into_iter().take(MAX_FILES) {
+        let id = d.device_id.clone();
+        let file = DeviceFile { format: FORMAT.into(), device_id: d.device_id, platform: d.platform, written_on: day.into(), counters: d.counters };
+        match check(file, known) {
+            Ok((f, _)) if f.device_id == store.device_id => report.problems.push("the server sent this device's own rows".into()),
+            Ok((f, dropped)) => {
+                store.replace_device(&f.device_id, &f.platform, &f.counters).map_err(|e| e.to_string())?;
+                report.devices += 1;
+                report.rows += f.counters.len();
+                report.skipped_rows += dropped;
+            }
+            Err(e) => report.problems.push(format!("{}: {e}", id.chars().take(40).collect::<String>())),
+        }
+    }
+    set_last(&report);
+    Ok(report)
+}
+
 pub fn record_failure(day: &str, err: &str) {
     set_last(&Report { day: day.into(), problems: vec![err.into()], ..Default::default() });
 }
@@ -293,6 +342,24 @@ mod tests {
         let p = mac.progress("2026-11-05").unwrap();
         assert_eq!((p[0].misses, p[0].win_uses), (1, 40));
         std::fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn hosted_answer_lands_like_a_file_and_cannot_touch_this_device() {
+        let mac = Store::in_memory().unwrap();
+        mac.record("system", "edit.copy", Kind::HabitMiss, "2026-11-05").unwrap();
+        let answer = serde_json::json!({
+            "format": FORMAT,
+            "devices": [
+                { "deviceId": "win-0b", "platform": "win", "counters": [row("edit.copy", "win_use", 40), row("free text", "win_use", 1)] },
+                { "deviceId": mac.device_id, "platform": "mac", "counters": [row("edit.copy", "habit_miss", 500)] },
+                { "deviceId": "../evil", "platform": "mac", "counters": [] },
+            ]
+        });
+        let r = apply_hosted(&mac, &serde_json::to_vec(&answer).unwrap(), &known, "2026-11-07").unwrap();
+        assert_eq!((r.devices, r.rows, r.skipped_rows, r.problems.len()), (1, 1, 1, 2));
+        let p = mac.progress("2026-11-07").unwrap();
+        assert_eq!((p[0].misses, p[0].win_uses), (1, 40));
     }
 
     #[test]

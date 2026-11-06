@@ -6,6 +6,6 @@
   "scripts": {
     "library": "node packages/library/tools/generate.mjs",
     "library:check": "node packages/library/tools/check.mjs",
-    "test": "node --test packages/library/test/*.test.mjs && npm run library:check"
+    "test": "node --test packages/library/test/*.test.mjs apps/web/test/*.test.mjs && npm run library:check"
   }
 }
