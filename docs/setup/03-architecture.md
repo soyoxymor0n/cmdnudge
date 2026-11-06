@@ -68,6 +68,21 @@ What syncs: `counter` rows of this device and `progress` (invariant 5). Days, no
 - **Habit rule depends on layout × keyboard type.** The AltGr→right-Cmd trap exists only on an Apple keyboard with DE/AT layout. A PC keyboard on a Mac sends right Alt as Option instead.
 - **Per-device counters.** Merging totals instead of per-device rows double-counts on every sync.
 
+## Infrastructure to provision (input for the `new-project` + `scaffold` skills)
+
+| Piece | What | Notes |
+|---|---|---|
+| GitHub | public repo `cmdnudge` (owner: Open-2), MIT, branches `main` + `beta` | release builds from public CI (D15) |
+| Vercel | project for `apps/web`, domain cmdnudge.com (Spaceship DNS) | Hobby account, beta → preview → promote (`vercel-deploy-flow`) |
+| Turso | `cmdnudge` (prod) + `cmdnudge-preview` | `env-isolation`: previews never touch prod sync rows |
+| Clerk | one application, email + Google sign-in, dev + prod instances | desktop sign-in via `cmdnudge.com/connect` (D4, Open-4) |
+| Resend | not needed in v1 | Clerk sends its own auth mail |
+| R2 / QStash / Redis | not needed | no uploads, no background jobs |
+| Apple | Developer ID signing + notarization | Open-9 |
+| Windows | code signing | Open-5 |
+
+Generate with `create-app.mjs --slug cmdnudge --reuse --brief docs/setup/cmdnudge-brief.md`. The template lands at the repo root (it keeps `docs/`); whether it is moved to `apps/web` or stays at the root with `apps/desktop` and `packages/library` beside it is settled at scaffold time against D2, without breaking the blueprint sync tooling.
+
 ## Security
 
 - `apps/web` follows `authorization-discipline`: `/api/sync` only ever reads and writes rows of the token's user; negative test with another user's device id.
