@@ -1,20 +1,38 @@
-# cmdnudge — handoff (2026-11-06)
+# cmdnudge — handoff (2026-11-06, night build)
 
-State: definition set done and validated (`docs/setup/`, `node ../blueprint/tools/project-docs.mjs --check .` = OK). Local git only, no remote yet (Open-2). Domain cmdnudge.com registered.
+State: Mac P0 + most of P1 built, installed and committed on `beta`; landing page built; pushed to
+`origin` (soyoxymor0n/cmdnudge) at the end of the night build. Feature status lives in the GitHub
+issues (`built` label = committed). Decisions waiting on the owner: issues labelled `owner-action`
+(#21–#25).
 
-Owner's target: "Everything built tonight, as far as possible. Ready to be used tomorrow on mac".
+## What exists
 
-## Tonight's build = Mac P0 only (docs/setup/02-features.md)
+| Path | What |
+|---|---|
+| `apps/desktop` | Tauri 2 menu bar app (Rust + React). CGEventTap → privacy filter (`src-tauri/src/filter.rs`) → matcher → non-activating NSPanel toast + SQLite counters. Screens: onboarding, habits, habit map, settings. |
+| `packages/library` | Habit map: 85 habits, 412 rules, US/DE/AT × Apple/PC keyboards. `npm run library` generates `dist/library.json`; `npm run library:check` validates. |
+| `apps/web` | cmdnudge.com: static, zero-dependency. `node build.mjs` → `dist/`. Uses the real library.json + chord.mjs; pastes `is_key_combo` from filter.rs into the privacy section. Privacy + imprint pages. |
 
-1. Install Rust (`rustup`, stable) - not installed on this Mac yet. Node and Xcode are present.
-2. `npm create tauri-app` → `apps/desktop` (Tauri 2, React + TS). Menu bar (tray) app, no dock icon.
-3. Rust capture: CGEventTap on key-down (active tap, so the guard can block), filter per `docs/setup/09-input-capture-and-privacy.md` FIRST, with tests.
-4. Frontmost app via NSWorkspace; layout via TIS; keyboard type override in settings.
-5. Matcher + ~50 habit rules in `packages/library` (JSON, schema in `docs/setup/08-shortcut-library-and-habit-map.md`), incl. the right-⌘Q guard for DE/AT Apple keyboards.
-6. Toast: non-activating NSPanel bottom right (`docs/setup/04-design.md`).
-7. SQLite counters (`habit_miss`, `mac_correct`), pause menu.
-8. Sign locally (as in MMF NG: no provisioning profile), install to /Applications, grant Input Monitoring + Accessibility.
+## How to build and check
 
-Not tonight: Windows recorder, sync, stats screen, menu-by-mouse, landing page, notarization.
+- Tests: `npm test` (library), `cd apps/desktop/src-tauri && cargo test` (26 Rust tests: filter, matcher, engine).
+- App: `cd apps/desktop && npm run install:local` — builds, signs locally without a provisioning
+  profile, stops the running copy, installs to `/Applications/cmdnudge.app`. Grant Input Monitoring +
+  Accessibility on first run. `CMDNUDGE_DEMO=hint|guard` shows a demo toast 800 ms after launch.
+- Web: `cd apps/web && node build.mjs && npx serve dist` (or `npm run dev`).
 
-Before step 5, measure the owner's keyboard (Open-8): Apple or PC keyboard, DE or AT layout.
+## Decisions taken tonight (not in docs/setup)
+
+- Open-2: repo lives on the owner's account, `soyoxymor0n/cmdnudge` (public).
+- Open-8: owner's hardware measured as **Apple keyboard + Austrian layout**; the right-⌘Q guard
+  (AltGr+Q habit) is on for DE/AT Apple keyboards.
+- The landing page is a static site in `apps/web`, not the house React template: it has no
+  backend, and a zero-dependency page loads instantly and can run the real library in the browser.
+- Landing copy makes no promises about future releases (public-feature-copy).
+
+## Next
+
+1. Owner answers #21–#25 (mail for hello@cmdnudge.com, Vercel project + domain, Apple Developer
+   account, screen-share auto-pause, Windows signing).
+2. Then: #20 notarized DMG from public CI, #19 menu-by-mouse hints (prototype Open-3 first),
+   #16 export/import, #17 Windows recorder, #18 hosted sync.

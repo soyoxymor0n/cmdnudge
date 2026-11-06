@@ -50,14 +50,14 @@ Ordered by how much damage they do if left unresolved.
 | # | Question | Why it matters | Status |
 |---|---|---|---|
 | ~~**Open-1**~~ | Is there a target date for the private P0 build and the public release? | ~34 person-days total | **Answered 2026-11-06:** "Everything built tonight, as far as possible. Ready to be used tomorrow on mac". Sharpens C1: tonight's build is the Mac P0 for the owner's own Mac; P1 follows |
-| **Open-2** | Repo home: `soyoxymor0n/cmdnudge` or a `cmdnudge` GitHub organisation (handle is free)? | release URLs, brand | Unresolved |
+| ~~**Open-2**~~ | Repo home: `soyoxymor0n/cmdnudge` or a `cmdnudge` GitHub organisation (handle is free)? | release URLs, brand | **Answered 2026-11-06:** `soyoxymor0n/cmdnudge`, public |
 | **Open-3** | Can Accessibility reliably catch menu items picked with the mouse in every app (Electron, Catalyst, Java apps)? | P1 feature and landing claim | Needs a 1-day prototype |
 | **Open-4** | Current Clerk support for desktop/native sign-in (device flow, deep link)? | D4 design | Check before sync work |
-| **Open-5** | Windows code signing: buy a certificate, use Azure Trusted Signing, or ship unsigned first? | SmartScreen warnings scare switchers | Unresolved |
+| **Open-5** | Windows code signing: buy a certificate, use Azure Trusted Signing, or ship unsigned first? | SmartScreen warnings scare switchers | Owner decision #25 |
 | **Open-6** | Brand identity (colours, logo, toast look) via `brand-identity` | toast and landing need it | Next step |
-| **Open-7** | Auto-pause when screen-sharing apps are in front (Zoom, Teams, Meet in browsers)? | hints during presentations | Unresolved |
-| **Open-8** | Measure the habit table on real hardware: Apple keyboard DE/AT, PC keyboard on Mac DE/AT, US | rows in [`08-shortcut-library-and-habit-map.md`](08-shortcut-library-and-habit-map.md) are design intent | Needs owner's hardware |
-| **Open-9** | Reuse the Apple Developer account used for Mac Mouse Fix NG for notarization? | Mac release | Unresolved |
+| **Open-7** | Auto-pause when screen-sharing apps are in front (Zoom, Teams, Meet in browsers)? | hints during presentations | Owner decision #24 |
+| ~~**Open-8**~~ | Measure the habit table on real hardware: Apple keyboard DE/AT, PC keyboard on Mac DE/AT, US | rows in [`08-shortcut-library-and-habit-map.md`](08-shortcut-library-and-habit-map.md) are design intent | **Measured 2026-11-06:** Apple keyboard, Austrian layout; guard on for DE/AT Apple |
+| **Open-9** | Reuse the Apple Developer account used for Mac Mouse Fix NG for notarization? | Mac release | Owner decision #23 |
 
 ## Part 4 — Constraints that are NOT open questions
 
