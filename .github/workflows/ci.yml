@@ -1,0 +1,53 @@
+# Checks every push and pull request: habit map, Rust core (filter, matcher, sync), desktop UI types, website build.
+name: ci
+
+on:
+  push:
+    branches: [beta, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  library-and-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Habit map tests
+        run: npm test
+      - name: Generated library.json is up to date
+        run: |
+          npm run library
+          git diff --exit-code packages/library/dist/library.json
+      - name: Website build
+        run: node apps/web/build.mjs
+
+  desktop:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+      - name: UI type check and build
+        working-directory: apps/desktop
+        run: |
+          npm ci
+          npm run build
+      - name: Rust tests
+        working-directory: apps/desktop/src-tauri
+        run: cargo test --locked

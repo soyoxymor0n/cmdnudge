@@ -1,0 +1,86 @@
+# Release build from public CI (#20, D15): universal app + DMG, SHA-256 checksums, draft GitHub release.
+# Runs on a version tag (v0.2.0) or by hand. Developer ID signing and notarization switch on by
+# themselves once these repository secrets exist (owner decision #23):
+#   APPLE_CERTIFICATE (base64 .p12), APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY,
+#   APPLE_ID, APPLE_PASSWORD (app-specific password), APPLE_TEAM_ID
+# Without them the build is ad-hoc signed and the draft says so; it is not published automatically.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  mac:
+    runs-on: macos-latest
+    env:
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - name: Tests first
+        run: |
+          npm test
+          cd apps/desktop/src-tauri && cargo test --locked
+      - name: Signing mode
+        id: mode
+        run: |
+          if [ -n "$APPLE_CERTIFICATE" ] && [ -n "$APPLE_ID" ]; then
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No Apple secrets: building an ad-hoc signed, un-notarized draft."
+            # Tauri signs ad-hoc with "-"; drop the empty values so it does not try to import a certificate.
+            for v in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do echo "$v=" >> "$GITHUB_ENV"; done
+            echo "APPLE_SIGNING_IDENTITY=-" >> "$GITHUB_ENV"
+          fi
+      - name: Build universal app and DMG
+        working-directory: apps/desktop
+        run: |
+          npm ci
+          npx tauri build --target universal-apple-darwin --bundles app,dmg
+      - name: Verify signature
+        run: |
+          APP=apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle/macos/cmdnudge.app
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          if [ "${{ steps.mode.outputs.signed }}" = true ]; then
+            spctl --assess --type execute --verbose "$APP"
+            xcrun stapler validate "$APP"
+          fi
+      - name: Checksums
+        id: files
+        run: |
+          mkdir -p out
+          VERSION=$(node -p "require('./apps/desktop/src-tauri/tauri.conf.json').version")
+          cp apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg "out/cmdnudge-$VERSION-mac-universal.dmg"
+          (cd out && shasum -a 256 *.dmg > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      - name: Draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          case "$TAG" in v*) ;; *) TAG="v${{ steps.files.outputs.version }}-ci.${GITHUB_RUN_NUMBER}" ;; esac
+          if [ "${{ steps.mode.outputs.signed }}" = true ]; then
+            NOTE="Signed with Developer ID and notarized by Apple. Built by GitHub Actions run ${GITHUB_RUN_ID} from commit ${GITHUB_SHA}."
+          else
+            NOTE="Not notarized (ad-hoc signature): macOS will refuse to open it without a right-click → Open. Built by GitHub Actions run ${GITHUB_RUN_ID} from commit ${GITHUB_SHA}."
+          fi
+          printf '%s\n\nSHA-256:\n```\n%s\n```\n' "$NOTE" "$(cat out/SHA256SUMS.txt)" > notes.md
+          gh release create "$TAG" out/* --draft --title "cmdnudge $TAG" --notes-file notes.md --target "$GITHUB_SHA"
