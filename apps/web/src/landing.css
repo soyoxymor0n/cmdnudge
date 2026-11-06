@@ -210,7 +210,7 @@ section { padding: clamp(80px, 11vw, 150px) var(--gutter); position: relative; }
 @keyframes blink { 50% { opacity: 0; } }
 .shot { position: absolute; border: 1.5px dashed var(--ink); background: color-mix(in srgb, var(--hand) 12%, transparent); opacity: 0; transition: opacity 0.2s; pointer-events: none; }
 .shot.is-on { opacity: 1; }
-@media (max-width: 520px) { .hide-s { display: none; } .chan { display: none; } .appwin-body { grid-template-columns: 1fr; } .appwin { left: 4%; width: 92%; } }
+@media (max-width: 520px) { .hide-s { display: none; } .chan { display: none; } .appwin-body { grid-template-columns: 1fr; } .appwin { left: 4%; width: 92%; top: 11%; height: 84%; } .screen { aspect-ratio: 16 / 13; } }
 
 /* the toast (mirrors the native panel) */
 .toast { position: absolute; right: 14px; bottom: 14px; min-width: 150px; padding: 10px 15px 10px; border-radius: 13px; background: var(--glass); border: 1px solid var(--glass-line); backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4); box-shadow: 0 18px 44px -14px rgba(0, 0, 0, 0.45); opacity: 0; transform: translateY(8px); transition: opacity 0.28s var(--ease), transform 0.36s var(--ease); pointer-events: none; z-index: 4; }
@@ -491,4 +491,21 @@ section { padding: clamp(80px, 11vw, 150px) var(--gutter); position: relative; }
 @media (max-width: 640px) {
   .tabs { flex-wrap: nowrap; overflow-x: auto; width: 100%; padding-bottom: 4px; scrollbar-width: none; }
   .tabs button { flex: none; }
+}
+
+/* Phones: the scene comes right after the claim, so the product is on the first screen. */
+@media (max-width: 640px) {
+  .hero-inner { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+  .hero-copy { display: contents; }
+  .hero-copy > .brandline { order: 1; align-self: flex-start; }
+  .hero-copy > h1 { order: 2; }
+  .hero-slot { order: 3; margin-top: 28px; }
+  .hero-copy > .lede { order: 4; }
+  .hero-copy > .ctas { order: 5; }
+  .hero-copy > .fine { order: 6; }
+}
+@media (max-width: 640px) {
+  .hero { padding-top: 56px; }
+  .hero .brandline { margin-bottom: 18px; }
+  .hero-slot { margin-top: 20px; }
 }
