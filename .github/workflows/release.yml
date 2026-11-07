@@ -46,13 +46,16 @@ jobs:
           else
             echo "signed=false" >> "$GITHUB_OUTPUT"
             echo "::warning::No Apple secrets: building an ad-hoc signed, un-notarized draft."
-            # Tauri signs ad-hoc with "-"; drop the empty values so it does not try to import a certificate.
-            for v in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do echo "$v=" >> "$GITHUB_ENV"; done
-            echo "APPLE_SIGNING_IDENTITY=-" >> "$GITHUB_ENV"
           fi
       - name: Build universal app and DMG
         working-directory: apps/desktop
         run: |
+          if [ "${{ steps.mode.outputs.signed }}" != true ]; then
+            # Missing secrets still arrive as empty variables, and Tauri then tries to import an empty
+            # certificate. Unset them and sign ad-hoc ("-") instead.
+            unset APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID
+            export APPLE_SIGNING_IDENTITY=-
+          fi
           npm ci
           npx tauri build --target universal-apple-darwin --bundles app,dmg
       - name: Verify signature
