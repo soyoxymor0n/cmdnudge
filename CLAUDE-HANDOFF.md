@@ -37,8 +37,8 @@ issues (`built` label = committed). Decisions waiting on the owner: issues label
 
 ## Next
 
-1. Owner steps left (all answered 2026-11-07): #21 enable the forward hello@ → priccogente+cmdnudge@gmail.com
-   in the Spaceship dashboard (DNS records are set); #23 create a Developer ID Application certificate
+1. Owner steps left (all answered 2026-11-07): #21 in Spaceship → Email forwarding, click "Verify DNS changes"
+   (the MX/SPF records now live in Vercel DNS) and keep the forward hello@ → priccogente+cmdnudge@gmail.com; #23 create a Developer ID Application certificate
    + app-specific password (steps on #23), then set the APPLE_* repo secrets. #24 built (quiet while
    sharing), #25 decided unsigned (the release workflow builds an unsigned Windows installer).
 2. #19 works on real menus (synthesized clicks). Try it once with the real mouse, then decide (Open-3) whether it becomes default-on.
@@ -47,8 +47,10 @@ issues (`built` label = committed). Decisions waiting on the owner: issues label
    folder shared with the Mac, press Ctrl+C a few times, sync both; the Mac's raw rows show
    `win_use`.
 4. Hosting (#22 answered A, DNS + Clerk production approved 2026-11-07). Done: Vercel project `cmdnudge`
-   (team soyoxymor0ns-projects, root `apps/web`, functions dub1); DNS at Spaceship (A @ 216.198.79.1 +
-   64.29.17.1, CNAME www/beta to Vercel, five Clerk CNAMEs); www 301 to apex; `beta.cmdnudge.com`
+   (team soyoxymor0ns-projects, root `apps/web`, functions dub1); DNS on Vercel since 2026-11-07 (Spaceship
+   nameservers → ns1/ns2.vercel-dns.com, house pattern; apex/www/beta served by Vercel as project
+   domains; records: five Clerk CNAMEs, MX mx1/mx2.efwd.spaceship.net + SPF TXT for Spaceship mail
+   forwarding, which needs no env vars); www 301 to apex; `beta.cmdnudge.com`
    aliased to the latest preview (behind Vercel login). Turso `cmdnudge-db` (production) and
    `cmdnudge-db-beta` (preview + development), aws-eu-west-1. Clerk app `cmdnudge`
    (app_3LlTDj5092zgi3TZx7vGUvo3UtX): dev instance + production instance on cmdnudge.com, email code or
