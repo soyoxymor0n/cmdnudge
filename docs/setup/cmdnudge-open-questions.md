@@ -53,11 +53,11 @@ Ordered by how much damage they do if left unresolved.
 | ~~**Open-2**~~ | Repo home: `soyoxymor0n/cmdnudge` or a `cmdnudge` GitHub organisation (handle is free)? | release URLs, brand | **Answered 2026-11-06:** `soyoxymor0n/cmdnudge`, public |
 | **Open-3** | Can Accessibility reliably catch menu items picked with the mouse in every app (Electron, Catalyst, Java apps)? | P1 feature and landing claim | Needs a 1-day prototype |
 | **Open-4** | Current Clerk support for desktop/native sign-in (device flow, deep link)? | D4 design | **Answered 2026-11-07:** no Tauri SDK. Clerk's own Electron SDK (beta) does exactly D4: system browser + custom-scheme deep link, one pending flow, 3-minute timeout. Clerk can also be an OAuth provider for public clients with PKCE (S256). The built design (the `/connect` page + a revocable link token over `cmdnudge://`) needs neither and works with a plain Clerk instance; PKCE stays the fallback if a page-free flow is ever wanted. No owner decision left. Sources: clerk.com/docs/reference/electron/overview, clerk.com/docs/guides/configure/auth-strategies/oauth/how-clerk-implements-oauth |
-| **Open-5** | Windows code signing: buy a certificate, use Azure Trusted Signing, or ship unsigned first? | SmartScreen warnings scare switchers | Owner decision #25 |
+| **Open-5** | Windows code signing: buy a certificate, use Azure Trusted Signing, or ship unsigned first? | SmartScreen warnings scare switchers | **Answered 2026-11-07 (#25):** unsigned first (ID Austria cannot sign code); Azure Trusted Signing later |
 | **Open-6** | Brand identity (colours, logo, toast look) via `brand-identity` | toast and landing need it | Next step |
-| **Open-7** | Auto-pause when screen-sharing apps are in front (Zoom, Teams, Meet in browsers)? | hints during presentations | Owner decision #24 |
+| **Open-7** | Auto-pause when screen-sharing apps are in front (Zoom, Teams, Meet in browsers)? | hints during presentations | **Answered 2026-11-07 (#24):** yes, no toasts while the screen is captured, counting continues; built |
 | ~~**Open-8**~~ | Measure the habit table on real hardware: Apple keyboard DE/AT, PC keyboard on Mac DE/AT, US | rows in [`08-shortcut-library-and-habit-map.md`](08-shortcut-library-and-habit-map.md) are design intent | **Measured 2026-11-06:** Apple keyboard, Austrian layout; guard on for DE/AT Apple |
-| **Open-9** | Reuse the Apple Developer account used for Mac Mouse Fix NG for notarization? | Mac release | Owner decision #23 |
+| **Open-9** | Reuse the Apple Developer account used for Mac Mouse Fix NG for notarization? | Mac release | **Answered 2026-11-07 (#23):** yes, that account; waits for its Developer ID certificate |
 
 ## Part 4 — Constraints that are NOT open questions
 

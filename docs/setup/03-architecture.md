@@ -80,7 +80,7 @@ What syncs: `counter` rows of this device and `progress` (invariant 5). Days, no
 | Resend | not needed in v1 | Clerk sends its own auth mail |
 | R2 / QStash / Redis | not needed | no uploads, no background jobs |
 | Apple | Developer ID signing + notarization | Open-9 |
-| Windows | code signing | Open-5 |
+| Windows | code signing | unsigned for now (#25) |
 
 Generate with `create-app.mjs --slug cmdnudge --reuse --brief docs/setup/cmdnudge-brief.md`. The template lands at the repo root (it keeps `docs/`); whether it is moved to `apps/web` or stays at the root with `apps/desktop` and `packages/library` beside it is settled at scaffold time against D2, without breaking the blueprint sync tooling.
 
@@ -88,4 +88,4 @@ Generate with `create-app.mjs --slug cmdnudge --reuse --brief docs/setup/cmdnudg
 
 - `apps/web` follows `authorization-discipline`: `/api/sync` only ever reads and writes rows of the token's user; negative test with another user's device id.
 - The desktop app needs no inbound network and only calls `cmdnudge.com/api/*`.
-- Code signing: Developer ID + notarization on the Mac; Windows signing **Open-5**.
+- Code signing: Developer ID + notarization on the Mac; Windows installer unsigned for now (#25).

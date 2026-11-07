@@ -20,7 +20,7 @@ Everything else is settings. Rules:
 
 - Hints for Windows habits show **every time**: the slip has just happened, so this is exactly the moment to learn.
 - Once an action is **mastered**, its hint turns quiet (smaller, 1.5 s) and stops entirely after 30 days without a miss. Mastered rule in [`06-metrics-and-analytics.md`](06-metrics-and-analytics.md).
-- **Pause** is always one click away in the menu bar / tray. Auto-pause during secure input (passwords) and optionally when screen sharing apps are in front (**Open-7**).
+- **Pause** is always one click away in the menu bar / tray. Auto-pause during secure input (passwords) and no toasts while the screen is shared or recorded (setting "Quiet while sharing your screen", on by default; #24).
 
 ## Screens (desktop app)
 

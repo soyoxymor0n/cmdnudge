@@ -37,8 +37,10 @@ issues (`built` label = committed). Decisions waiting on the owner: issues label
 
 ## Next
 
-1. Owner answers #21, #23–#25 (mail for hello@cmdnudge.com, Apple Developer account, screen-share
-   auto-pause, Windows signing). #22 is answered, see 4.
+1. Owner steps left (all answered 2026-11-07): #21 enable the forward hello@ → priccogente+cmdnudge@gmail.com
+   in the Spaceship dashboard (DNS records are set); #23 create a Developer ID Application certificate
+   + app-specific password (steps on #23), then set the APPLE_* repo secrets. #24 built (quiet while
+   sharing), #25 decided unsigned (the release workflow builds an unsigned Windows installer).
 2. Check #19 on real menus (Open-3), then make it default-on if it behaves.
 3. #20 finishes with the first notarized tag after #23. #17: run `npm run tauri dev` in
    `apps/desktop` on a Windows machine, point Settings → Your other computers at a OneDrive/Dropbox
