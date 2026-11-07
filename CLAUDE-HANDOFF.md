@@ -43,7 +43,7 @@ issues (`built` label = committed). Decisions waiting on the owner: issues label
 3. #20 finishes with the first notarized tag after #23. #17: run `npm run tauri dev` in
    `apps/desktop` on a Windows machine, point Settings → Your other computers at a OneDrive/Dropbox
    folder shared with the Mac, press Ctrl+C a few times, sync both; the Mac's raw rows show
-   `win_use`. #18 goes live without new code: after #22 and Open-4, create Turso `cmdnudge` +
+   `win_use`. #18 goes live without new code: after #22 (Open-4 is answered: the built design matches Clerk's own desktop pattern), create Turso `cmdnudge` +
    `cmdnudge-preview` and a Clerk instance (allow `https://cmdnudge.com/connect` as redirect), set
    `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `CLERK_JWT_KEY`, `CLERK_PUBLISHABLE_KEY` per Vercel
    environment, then finish the privacy page: its "Accounts and sign-in" section is drafted but names no
