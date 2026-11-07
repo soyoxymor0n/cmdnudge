@@ -57,11 +57,13 @@ jobs:
         working-directory: apps/desktop
         run: |
           if [ "${{ steps.mode.outputs.signed }}" = self ]; then
-            # Sign with the self-made certificate, skip notarization (it needs the paid program).
-            # Tauri only uses identities macOS calls valid, so trust the public half for code
-            # signing on this runner first (the private key stays in the secret).
-            sudo security add-trusted-cert -d -r trustRoot -p codeSign -k /Library/Keychains/System.keychain src-tauri/signing/cmdnudge-selfsigned.pem
-            unset APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID
+            # Self-made certificate: Tauri only signs with identities macOS calls valid, and an
+            # untrusted self-made one is not, so build unsigned here and sign in the next step.
+            unset APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID
+            export APPLE_SIGNING_IDENTITY=-
+            npm ci
+            npx tauri build --target universal-apple-darwin --bundles app
+            exit 0
           elif [ "${{ steps.mode.outputs.signed }}" != true ]; then
             # Missing secrets still arrive as empty variables, and Tauri then tries to import an empty
             # certificate. Unset them and sign ad-hoc ("-") instead.
@@ -70,6 +72,26 @@ jobs:
           fi
           npm ci
           npx tauri build --target universal-apple-darwin --bundles app,dmg
+      - name: Sign with the self-made certificate and build the DMG
+        if: steps.mode.outputs.signed == 'self'
+        run: |
+          B=apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle
+          KC="$RUNNER_TEMP/cmdnudge.keychain-db"; KP=$(openssl rand -hex 12)
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/c.p12"
+          security create-keychain -p "$KP" "$KC"
+          security set-keychain-settings -lut 3600 "$KC"
+          security unlock-keychain -p "$KP" "$KC"
+          security import "$RUNNER_TEMP/c.p12" -k "$KC" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign >/dev/null
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KP" "$KC" >/dev/null
+          rm "$RUNNER_TEMP/c.p12"
+          codesign --force --deep --options runtime --keychain "$KC" -s "$APPLE_SIGNING_IDENTITY" "$B/macos/cmdnudge.app"
+          VERSION=$(node -p "require('./apps/desktop/src-tauri/tauri.conf.json').version")
+          mkdir -p "$RUNNER_TEMP/dmg" "$B/dmg"
+          ditto "$B/macos/cmdnudge.app" "$RUNNER_TEMP/dmg/cmdnudge.app"
+          ln -s /Applications "$RUNNER_TEMP/dmg/Applications"
+          hdiutil create -volname cmdnudge -srcfolder "$RUNNER_TEMP/dmg" -ov -format UDZO "$B/dmg/cmdnudge_${VERSION}_universal.dmg"
+          codesign --force --keychain "$KC" -s "$APPLE_SIGNING_IDENTITY" "$B/dmg/cmdnudge_${VERSION}_universal.dmg"
+          security delete-keychain "$KC"
       - name: Verify signature
         run: |
           APP=apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle/macos/cmdnudge.app
