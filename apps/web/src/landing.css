@@ -510,3 +510,9 @@ section { padding: clamp(80px, 11vw, 150px) var(--gutter); position: relative; }
   .hero-slot { margin-top: 20px; }
 }
 .connect #sign-in:not(:empty) { margin: 24px 0; }
+
+/* The mark: lime ⌘ + purple fingertip on a dark tile; the light theme gets the same
+   hues, darkened to read on white (icon-light.png, from icons/source-light.svg). */
+.mk-l { display: none; }
+:root[data-theme='light'] .mk-d { display: none; }
+:root[data-theme='light'] .mk-l { display: inline-block; }

@@ -42,7 +42,8 @@
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="theme-color" content="#070a14" />
-    <link rel="icon" href="/favicon.png" />
+    <link rel="icon" href="/favicon.png" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon-light.png" media="(prefers-color-scheme: light)" />
     <link rel="apple-touch-icon" href="/icon.png" />
     <script>
       // No-flash theme init (theme-toggle standard): key "theme", class + data-theme on <html>.
@@ -69,7 +70,7 @@
     <!-- Header: off-screen until the hero has scrolled past (header-logo tier 1). -->
     <header class="topbar" id="topbar">
       <a class="logo" href="#top" id="logo" aria-label="cmdnudge, back to top">
-        <img src="/icon.png" alt="" width="26" height="26" />
+        <img class="mk-d" src="/icon.png" alt="" width="26" height="26" /><img class="mk-l" src="/icon-light.png" alt="" width="26" height="26" />
         <span>cmdnudge</span>
         <svg class="logo-up" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </a>
@@ -99,7 +100,7 @@
         </button>
         <div class="hero-inner">
           <div class="hero-copy">
-            <a class="brandline reveal" href="#top"><img src="/icon.png" alt="" width="34" height="34" /><span>cmdnudge</span></a>
+            <a class="brandline reveal" href="#top"><img class="mk-d" src="/icon.png" alt="" width="34" height="34" /><img class="mk-l" src="/icon-light.png" alt="" width="34" height="34" /><span>cmdnudge</span></a>
             <h1 class="display reveal" style="--d: 80ms">
               Ctrl+C.<br />Nothing happens.<br /><span class="accent-wipe">Here’s ⌘C.</span>
             </h1>
@@ -447,7 +448,7 @@
 
     <footer class="foot">
       <div class="foot-inner">
-        <a class="logo" href="#top"><img src="/icon.png" alt="" width="22" height="22" /><span>cmdnudge</span></a>
+        <a class="logo" href="#top"><img class="mk-d" src="/icon.png" alt="" width="22" height="22" /><img class="mk-l" src="/icon-light.png" alt="" width="22" height="22" /><span>cmdnudge</span></a>
         <nav aria-label="Footer">
           <a href="https://github.com/soyoxymor0n/cmdnudge">GitHub</a>
           <a href="/privacy">Privacy</a>
