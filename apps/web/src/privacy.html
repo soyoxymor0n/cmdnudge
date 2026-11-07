@@ -30,7 +30,7 @@
       <p>cmdnudge is operated by Patrick Reichmann, Vienna, Austria (contact: <a href="mailto:hello@cmdnudge.com">hello@cmdnudge.com</a>). This page covers two things: the cmdnudge app for macOS, and this website, cmdnudge.com.</p>
 
       <h2>The short version</h2>
-      <p>The app keeps a few counters on your Mac and sends nothing anywhere. This website sets no cookies and runs no analytics. There is no account.</p>
+      <p>The app keeps a few counters on your Mac and sends nothing anywhere unless you turn on sync. This website runs no analytics. An account is optional: it exists only if you choose “Sync with an account”, and then it holds your sign-in and the same counters, nothing more.</p>
 
       <h2>Information the app handles</h2>
       <div class="card"><b>Key presses, briefly, in memory.</b> To notice a Windows habit, macOS lets the app see each key press. A filter (<a href="https://github.com/soyoxymor0n/cmdnudge/blob/main/apps/desktop/src-tauri/src/filter.rs">filter.rs</a>) throws away everything that is not a key combination (letters, numbers, Shift+letter, Space, Return) on the spot. Combinations are compared with the habit map and then forgotten as well.</div>
@@ -49,27 +49,26 @@
       <p>cmdnudge.com is a static site hosted by Vercel Inc. Vercel processes standard request data (IP address, user agent, time) to deliver the pages and keep them safe; we do not read or keep these logs. Fonts come from Google Fonts, which sees the same request data when your browser loads them. The “try it” box on the home page runs entirely in your browser; nothing you press there is sent anywhere. The site remembers your colour theme in your browser's local storage, and nothing else.</p>
 
       <h2>Data security</h2>
-      <p>The counters live in a SQLite file in the app's folder on your Mac (~/Library/Application Support/com.cmdnudge.app), protected by your macOS account like your other files. The website is served over HTTPS only.</p>
+      <p>The counters live in a SQLite file in the app's folder on your Mac (~/Library/Application Support/com.cmdnudge.app), protected by your macOS account like your other files. The website is served over HTTPS only. Synced counters travel over HTTPS and are stored by Turso in the EU; only the sync server, with its own credentials, can read them.</p>
 
       <h2>How long we keep things</h2>
-      <p>On your Mac, until you delete them: settings → “Delete all counts” removes all counters and daily totals at once; uninstalling the app and its folder removes everything. On our side there is nothing to keep, because nothing reaches us.</p>
+      <p>On your Mac, until you delete them: settings → “Delete all counts” removes all counters and daily totals at once; uninstalling the app and its folder removes everything. With account sync, the synced counters, computers and key fingerprints stay until you delete the account (in the app) or ask us to; then they are removed at once, and Clerk deletes your sign-in data. Without account sync nothing reaches us, so there is nothing to keep.</p>
 
       <h2>Using two computers</h2>
       <p>If you choose a sync folder in settings (“Your other computers”), the app writes one file there with this Mac's counters: app family, action, kind (habit or Mac way), count, and the first and last day it happened. No keys, no text, no times of day. Each computer reads the other computers' files and adds their counts to your totals. Where that file travels depends on the folder you picked: in iCloud Drive or Dropbox it is stored by that service under your own account with them, not by us. Turning file sync off stops writing; “Remove their counts” deletes the other computers' rows from this Mac.</p>
 
       <h2>Accounts and sign-in</h2>
-      <p>This version has no account and no sign-in. The app has a “Sync with an account” option, but it is not open yet: its button stays disabled and the app sends nothing for it. Before it opens, this section will name the sign-in methods and the services that store the data, and the date at the top will move.</p>
-      <p>What account sync is built to store, so you can judge it in advance:</p>
-      <div class="card"><b>Your account.</b> The sign-in service's user id for you, and what that service needs to sign you in (for example your email address).</div>
+      <p>Account sync is optional. Folder sync (above) needs no account. If you choose “Sync with an account” in the app, it opens cmdnudge.com/connect in your browser, you sign in there with your email address (a one-time code sent by email, or a password), and the page hands the app a key. Sign-in is run by Clerk, Inc. (USA). The synced data is stored by Turso (turso.tech) in its AWS region in Ireland (EU). What is stored:</p>
+      <div class="card"><b>Your account, at Clerk.</b> Your email address, a password hash if you set one, your Clerk user id, and the session data Clerk needs to keep you signed in on the connect page (a cookie on cmdnudge.com and clerk.cmdnudge.com, used only for that). We store only your Clerk user id next to your counters.</div>
       <div class="card"><b>A key per linked computer.</b> When you sign in from the app, the app gets a random key for syncing. We keep only a fingerprint of it (a SHA-256 hash), never the key itself. “Sign out” in the app deletes it.</div>
       <div class="card"><b>The same counters as folder sync.</b> Per computer: a random device id, “mac” or “win”, and for each known shortcut the app family, action, kind, count, and the first and last day. Plus the day each computer last synced. No keys you pressed, no text, no times of day, no app or window names.</div>
-      <p>Deleting your account removes all of it at once: counters, computers and keys. A computer's counters can only ever be written by the account that first synced it.</p>
+      <p>Deleting your account removes all of it at once: counters, computers and keys. A computer's counters can only ever be written by the account that first synced it. No sign-in with Google or any other provider is offered, so no other company learns that you use cmdnudge.</p>
 
       <h2>Who this is for</h2>
       <p>cmdnudge is meant for people aged 16 and over.</p>
 
       <h2>Third parties</h2>
-      <p>The app talks to no third party. The website uses Vercel (hosting, request data as above) and Google Fonts (font files, request data as above). We do not sell personal data.</p>
+      <p>Without account sync the app talks to no third party. The website uses Vercel (hosting, request data as above) and Google Fonts (font files, request data as above). With account sync: Clerk, Inc. runs sign-in and sees your email address and request data on the connect page; Turso stores the synced counters in the EU and sees only those and your Clerk user id. Neither may use the data for anything but providing the service to us. We do not sell personal data.</p>
 
       <h2>Your rights</h2>
       <p>Everything the app keeps is on your Mac and under your control: settings → “What is stored” shows the raw rows (“Show the raw rows”), “Export counters” writes this Mac's counters to a JSON file where you choose, and “Delete all counts” removes them. Under the GDPR you also have the right to access, correction, deletion and to complain to a supervisory authority (in Austria: the Datenschutzbehörde, dsb.gv.at). Write to hello@cmdnudge.com and you will get an answer within 30 days, though we will usually have nothing about you to show.</p>
