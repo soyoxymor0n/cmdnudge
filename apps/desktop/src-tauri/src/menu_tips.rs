@@ -66,13 +66,42 @@ fn glyph_symbol(g: i64) -> Option<&'static str> {
     })
 }
 
-/// A menu closed. Was the highlighted item picked with the mouse? Yes when a left mouse-up
-/// happened just now, after the item was highlighted, with the pointer over the item.
-/// Return/Enter, Escape and clicks elsewhere all fail one of the three.
-pub fn picked_by_mouse(secs_since_mouse_up: f64, highlighted_for: Duration, pointer: (f64, f64), frame: (f64, f64, f64, f64)) -> bool {
+/// How long after a menu closed its click may still show up. macOS registers the mouse-up that
+/// picks a menu item only once the menu's tracking loop ends, which can be after AXMenuClosed
+/// (seen on macOS 26: 0.6 to 1.9 s later in Finder), so the verdict waits for it.
+pub const UP_AFTER_CLOSE_SECS: f64 = 2.0;
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum Verdict {
+    Picked,
+    NotPicked,
+    /// No qualifying mouse-up yet; ask again shortly.
+    Wait,
+}
+
+pub fn inside(pointer: (f64, f64), frame: (f64, f64, f64, f64)) -> bool {
     let (x, y, w, h) = frame;
-    let inside = pointer.0 >= x && pointer.0 <= x + w && pointer.1 >= y && pointer.1 <= y + h;
-    secs_since_mouse_up >= 0.0 && secs_since_mouse_up < 1.0 && highlighted_for.as_secs_f64() > secs_since_mouse_up && inside
+    pointer.0 >= x && pointer.0 <= x + w && pointer.1 >= y && pointer.1 <= y + h
+}
+
+/// A menu closed with the pointer over its highlighted item (`inside` decided that at close).
+/// Was the item picked with the mouse? Yes when the last left mouse-up happened after the item
+/// was highlighted and no later than shortly after the close. Return/Enter and Escape have no
+/// such mouse-up (the last one opened the menu, before the highlight); a click elsewhere fails
+/// `inside`.
+///
+/// `highlighted_secs`: how long the item had been highlighted when the menu closed.
+/// `since_close`, `since_up`: seconds from the close and from the last mouse-up until now.
+pub fn judge(highlighted_secs: f64, since_close: f64, since_up: f64) -> Verdict {
+    // Seconds the mouse-up came before the close (negative: after it).
+    let up_before_close = since_up - since_close;
+    if up_before_close < highlighted_secs && up_before_close > -UP_AFTER_CLOSE_SECS {
+        Verdict::Picked
+    } else if since_close < UP_AFTER_CLOSE_SECS {
+        Verdict::Wait
+    } else {
+        Verdict::NotPicked
+    }
 }
 
 #[derive(Default)]
@@ -122,16 +151,19 @@ mod tests {
     #[test]
     fn only_a_click_on_the_item_counts() {
         let frame = (100.0, 200.0, 220.0, 22.0);
-        let on = (150.0, 210.0);
-        let off = (150.0, 260.0);
-        let long = Duration::from_millis(800);
-        assert!(picked_by_mouse(0.2, long, on, frame));
+        assert!(inside((150.0, 210.0), frame));
         // Pointer elsewhere: clicked outside the menu to dismiss it.
-        assert!(!picked_by_mouse(0.2, long, off, frame));
-        // No recent mouse-up: chosen with Return, or closed with Escape.
-        assert!(!picked_by_mouse(4.0, long, on, frame));
-        // Highlighted after the last mouse-up (the click opened the menu, then Escape).
-        assert!(!picked_by_mouse(0.5, Duration::from_millis(200), on, frame));
+        assert!(!inside((150.0, 260.0), frame));
+        // Clicked 0.2 s before the close, highlighted for 0.8 s.
+        assert_eq!(judge(0.8, 0.0, 0.2), Verdict::Picked);
+        // macOS registers the mouse-up after the close: not there yet, then it is.
+        assert_eq!(judge(1.1, 0.0, 1.9), Verdict::Wait);
+        assert_eq!(judge(1.1, 0.8, 0.1), Verdict::Picked);
+        // Return/Enter or Escape: the last mouse-up opened the menu, before the highlight.
+        assert_eq!(judge(0.3, 0.0, 1.0), Verdict::Wait);
+        assert_eq!(judge(0.3, 2.5, 3.5), Verdict::NotPicked);
+        // A click long after the menu closed is something else.
+        assert_eq!(judge(0.3, 2.5, 0.1), Verdict::NotPicked);
     }
 
     #[test]
