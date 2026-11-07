@@ -12,7 +12,7 @@ issues (`built` label = committed). Decisions waiting on the owner: issues label
 | `apps/desktop` | Tauri 2 menu bar app (Rust + React). CGEventTap → privacy filter (`src-tauri/src/filter.rs`) → matcher → non-activating NSPanel toast + SQLite counters. Screens: onboarding, habits, habit map, settings. |
 | `packages/library` | Habit map: 85 habits, 412 rules, US/DE/AT × Apple/PC keyboards. `npm run library` generates `dist/library.json`; `npm run library:check` validates. |
 | `apps/desktop` sync | #16: export/import + file sync (`src-tauri/src/sync.rs`). One `<device>.json` per computer in `<folder>/cmdnudge-sync/`, rows summed per device (D3), every file validated against the library. Settings → "Your other computers". |
-| `apps/desktop` menu tips | #19, experimental, off by default (`menu_tips.rs`, `mac/menus.rs`): AX observer, tip on the third mouse pick of a menu item with a shortcut. Unit-tested and running without errors; **not yet seen working on real menus** (the screen was locked during the night build) — switch it on in Settings → Learning mode and pick e.g. Finder → Go → Home three times. |
+| `apps/desktop` menu tips | #19, experimental, off by default (`menu_tips.rs`, `mac/menus.rs`): AX observer, tip on the third mouse pick of a menu item with a shortcut. Seen working on macOS 26 (2026-11-07): Finder → Go → Home picked three times with the mouse shows "Tip ⇧⌘H · Home"; picking with Return does not count. macOS 26 posts AXSelectedChildrenChanged instead of AXMenuItemSelected and registers the click's mouse-up after AXMenuClosed, so the verdict waits up to 2 s (`menu_tips::judge`). Tested with synthesized clicks; one real-mouse try is still worth doing. `CMDNUDGE_DEBUG=1` logs every step to stderr. |
 | `apps/desktop` Windows recorder | #17: `win_recorder.rs` (platform-free: virtual key → chord, exe → family, chord → library action) and `win/mod.rs` (cfg(windows): `WH_KEYBOARD_LL` hook, counts `win_use`, no toast). Counts reach the Mac through file sync; the Mac's "Still costing you" list then orders by Windows usage. Compiles for `x86_64-pc-windows-msvc` (checked locally in isolation) and the CI `windows` job builds and tests the whole app on Windows. **Never run on a real Windows machine yet**, and there is no Windows installer (#25 signing). |
 | hosted sync (account) | #18, all code done and configured for every environment; live on cmdnudge.com; one real sign-up from the app still to do (Next 4). Web: `api/sync.mjs` + `api/link.mjs` (503 until env is set) → `server/sync.mjs` (validation, device ownership, merge, delete account), `server/link.mjs` (revocable link tokens, SHA-256 stored), `server/turso-http.mjs`, `server/clerk-token.mjs`; sign-in page `src/connect.html`. App: Settings → "Sync with an account" (disabled until the server answers), `hosted.rs` (state-checked `cmdnudge://link` deep link), `sync::hosted_sync`. Verified with the installed app against a local server built from the real handlers. Contract: `docs/setup/03-architecture.md`. |
 | `.github/workflows` | `ci.yml` (tests on every push) and `release.yml` (#20: tag `v*` → universal DMG + SHA256SUMS → draft release; signs + notarizes once the Apple secrets from #23 exist). Universal build verified locally. |
@@ -20,7 +20,7 @@ issues (`built` label = committed). Decisions waiting on the owner: issues label
 
 ## How to build and check
 
-- Tests: `npm test` (library), `cd apps/desktop/src-tauri && cargo test` (34 Rust tests: filter, matcher, engine, store, sync, menu tips).
+- Tests: `npm test` (library), `cd apps/desktop/src-tauri && cargo test` (46 Rust tests: filter, matcher, engine, store, sync, menu tips, Windows recorder).
 - App: `cd apps/desktop && npm run install:local` — builds, signs locally without a provisioning
   profile, stops the running copy, installs to `/Applications/cmdnudge.app`. Grant Input Monitoring +
   Accessibility on first run. `CMDNUDGE_DEMO=hint|guard` shows a demo toast 800 ms after launch.
@@ -41,7 +41,7 @@ issues (`built` label = committed). Decisions waiting on the owner: issues label
    in the Spaceship dashboard (DNS records are set); #23 create a Developer ID Application certificate
    + app-specific password (steps on #23), then set the APPLE_* repo secrets. #24 built (quiet while
    sharing), #25 decided unsigned (the release workflow builds an unsigned Windows installer).
-2. Check #19 on real menus (Open-3), then make it default-on if it behaves.
+2. #19 works on real menus (synthesized clicks). Try it once with the real mouse, then decide (Open-3) whether it becomes default-on.
 3. #20 finishes with the first notarized tag after #23. #17: run `npm run tauri dev` in
    `apps/desktop` on a Windows machine, point Settings → Your other computers at a OneDrive/Dropbox
    folder shared with the Mac, press Ctrl+C a few times, sync both; the Mac's raw rows show
