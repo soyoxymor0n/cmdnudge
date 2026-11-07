@@ -11,6 +11,7 @@
 
 use crate::win_recorder::{chord_text, key_name, Recorder, WinMods};
 use std::sync::mpsc::{channel, Sender};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, OnceLock};
 use windows_sys::Win32::Foundation::{CloseHandle, LPARAM, LRESULT, WPARAM};
 use windows_sys::Win32::System::Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION};
@@ -26,6 +27,8 @@ static RECORDER: OnceLock<Recorder> = OnceLock::new();
 static SENDER: OnceLock<Mutex<Sender<String>>> = OnceLock::new();
 /// The key currently held, so auto-repeat counts once.
 static HELD: Mutex<u32> = Mutex::new(0);
+/// True once the low-level hook is installed (read by the Windows CI test).
+static HOOK_READY: AtomicBool = AtomicBool::new(false);
 
 fn down(vk: u16) -> bool {
     unsafe { (GetAsyncKeyState(vk as i32) as u16 & 0x8000) != 0 }
@@ -137,6 +140,7 @@ pub fn start(recorder: Recorder, on_use: impl Fn(&str, &str) + Send + 'static) {
             if h.is_null() {
                 return;
             }
+            HOOK_READY.store(true, Ordering::SeqCst);
             let mut msg: MSG = std::mem::zeroed();
             while GetMessageW(&mut msg, std::ptr::null_mut(), 0, 0) > 0 {
                 TranslateMessage(&msg);
@@ -144,4 +148,75 @@ pub fn start(recorder: Recorder, on_use: impl Fn(&str, &str) + Send + 'static) {
             }
         })
         .expect("spawn the Windows keyboard hook");
+}
+
+#[cfg(test)]
+mod tests {
+    //! Runs on the windows-latest CI runner: the real hook, the real worker, the real foreground
+    //! lookup. Only the physical key press is simulated, by calling the hook the way Windows does.
+    use super::*;
+    use crate::library;
+    use std::sync::mpsc;
+    use std::time::{Duration, Instant};
+    use windows_sys::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP};
+
+    fn key(vk: u16, up: bool) -> INPUT {
+        INPUT {
+            r#type: INPUT_KEYBOARD,
+            Anonymous: INPUT_0 { ki: KEYBDINPUT { wVk: vk, wScan: 0, dwFlags: if up { KEYEVENTF_KEYUP } else { 0 }, time: 0, dwExtraInfo: 0 } },
+        }
+    }
+
+    fn send(keys: &[INPUT]) -> u32 {
+        unsafe { SendInput(keys.len() as u32, keys.as_ptr(), std::mem::size_of::<INPUT>() as i32) }
+    }
+
+    fn physical(vk: u32, msg: u32) {
+        let k = KBDLLHOOKSTRUCT { vkCode: vk, scanCode: 0, flags: 0, time: 0, dwExtraInfo: 0 };
+        unsafe { hook(0, msg as WPARAM, &k as *const KBDLLHOOKSTRUCT as LPARAM) };
+    }
+
+    #[test]
+    fn hook_installs_skips_injected_keys_and_counts_a_physical_chord() {
+        let (tx, rx) = mpsc::channel::<(String, String)>();
+        start(Recorder::new(library::get()), move |family, action| {
+            let _ = tx.send((family.to_string(), action.to_string()));
+        });
+        let t = Instant::now();
+        while !HOOK_READY.load(Ordering::SeqCst) && t.elapsed() < Duration::from_secs(3) {
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        assert!(HOOK_READY.load(Ordering::SeqCst), "SetWindowsHookExW(WH_KEYBOARD_LL) failed");
+
+        // Synthetic input (another program, a remote tool, cmdnudge itself) is never counted.
+        let c = b'C' as u16;
+        let ctrl = VK_LCONTROL;
+        if send(&[key(ctrl, false), key(c, false), key(c, true), key(ctrl, true)]) == 4 {
+            assert!(rx.recv_timeout(Duration::from_millis(800)).is_err(), "an injected Ctrl+C was counted");
+        } else {
+            eprintln!("SendInput blocked on this runner; injected-key check skipped");
+        }
+
+        // A physical Ctrl+C: Ctrl held, then the hook sees C the way Windows delivers it.
+        send(&[key(ctrl, false)]);
+        std::thread::sleep(Duration::from_millis(100));
+        if !down(ctrl) {
+            send(&[key(ctrl, true)]);
+            eprintln!("no interactive input desktop on this runner; physical-chord check skipped");
+            return;
+        }
+        physical(c as u32, WM_KEYDOWN);
+        physical(c as u32, WM_KEYDOWN); // auto-repeat: still one use
+        physical(c as u32, WM_KEYUP);
+        send(&[key(ctrl, true)]);
+        let (family, action) = rx.recv_timeout(Duration::from_secs(2)).expect("a physical Ctrl+C was not counted");
+        assert_eq!(action, "edit.copy");
+        eprintln!("counted Ctrl+C as {action} in family {family}");
+        assert!(rx.recv_timeout(Duration::from_millis(500)).is_err(), "auto-repeat counted twice");
+
+        // Plain typing never leaves the hook.
+        physical(b'Q' as u32, WM_KEYDOWN);
+        physical(b'Q' as u32, WM_KEYUP);
+        assert!(rx.recv_timeout(Duration::from_millis(500)).is_err(), "a plain letter was counted");
+    }
 }
