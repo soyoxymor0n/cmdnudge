@@ -52,33 +52,38 @@ fn modifiers() -> WinMods {
     }
 }
 
-unsafe extern "system" fn hook(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
-    if code >= 0 {
-        let k = &*(lparam as *const KBDLLHOOKSTRUCT);
-        let msg = wparam as u32;
-        if msg == WM_KEYUP || msg == WM_SYSKEYUP {
+/// One key event as the hook sees it. `mods` is only asked for on a fresh, physical, non-modifier
+/// key-down, so ordinary key-ups and repeats cost nothing.
+fn on_key(vk: u32, msg: u32, flags: u32, mods: impl FnOnce() -> WinMods) {
+    if msg == WM_KEYUP || msg == WM_SYSKEYUP {
+        let mut held = HELD.lock().unwrap();
+        if *held == vk {
+            *held = 0;
+        }
+    } else if (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN) && flags & LLKHF_INJECTED == 0 && !is_modifier(vk) {
+        let repeat = {
             let mut held = HELD.lock().unwrap();
-            if *held == k.vkCode {
-                *held = 0;
-            }
-        } else if (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN) && k.flags & LLKHF_INJECTED == 0 && !is_modifier(k.vkCode) {
-            let repeat = {
-                let mut held = HELD.lock().unwrap();
-                let r = *held == k.vkCode;
-                *held = k.vkCode;
-                r
-            };
-            if !repeat {
-                if let (Some(key), Some(rec)) = (key_name(k.vkCode), RECORDER.get()) {
-                    let chord = chord_text(modifiers(), &key);
-                    if rec.is_habit_chord(&chord) {
-                        if let Some(tx) = SENDER.get() {
-                            let _ = tx.lock().unwrap().send(chord);
-                        }
+            let r = *held == vk;
+            *held = vk;
+            r
+        };
+        if !repeat {
+            if let (Some(key), Some(rec)) = (key_name(vk), RECORDER.get()) {
+                let chord = chord_text(mods(), &key);
+                if rec.is_habit_chord(&chord) {
+                    if let Some(tx) = SENDER.get() {
+                        let _ = tx.lock().unwrap().send(chord);
                     }
                 }
             }
         }
+    }
+}
+
+unsafe extern "system" fn hook(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+    if code >= 0 {
+        let k = &*(lparam as *const KBDLLHOOKSTRUCT);
+        on_key(k.vkCode, wparam as u32, k.flags, modifiers);
     }
     // Always pass the key on: the recorder only watches.
     CallNextHookEx(std::ptr::null_mut(), code, wparam, lparam)
@@ -152,32 +157,23 @@ pub fn start(recorder: Recorder, on_use: impl Fn(&str, &str) + Send + 'static) {
 
 #[cfg(test)]
 mod tests {
-    //! Runs on the windows-latest CI runner: the real hook, the real worker, the real foreground
-    //! lookup. Only the physical key press is simulated, by calling the hook the way Windows does.
+    //! Runs on the windows-latest CI runner: the real hook installation, the real worker thread
+    //! and the real foreground-app lookup. Key events are fed through the same function the hook
+    //! calls, with the modifier state given, so no input is injected into the runner's desktop.
     use super::*;
     use crate::library;
     use std::sync::mpsc;
     use std::time::{Duration, Instant};
-    use windows_sys::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP};
 
-    fn key(vk: u16, up: bool) -> INPUT {
-        INPUT {
-            r#type: INPUT_KEYBOARD,
-            Anonymous: INPUT_0 { ki: KEYBDINPUT { wVk: vk, wScan: 0, dwFlags: if up { KEYEVENTF_KEYUP } else { 0 }, time: 0, dwExtraInfo: 0 } },
-        }
-    }
+    const C: u32 = b'C' as u32;
+    const Q: u32 = b'Q' as u32;
 
-    fn send(keys: &[INPUT]) -> u32 {
-        unsafe { SendInput(keys.len() as u32, keys.as_ptr(), std::mem::size_of::<INPUT>() as i32) }
-    }
-
-    fn physical(vk: u32, msg: u32) {
-        let k = KBDLLHOOKSTRUCT { vkCode: vk, scanCode: 0, flags: 0, time: 0, dwExtraInfo: 0 };
-        unsafe { hook(0, msg as WPARAM, &k as *const KBDLLHOOKSTRUCT as LPARAM) };
+    fn ctrl() -> WinMods {
+        WinMods { ctrl: true, ..Default::default() }
     }
 
     #[test]
-    fn hook_installs_skips_injected_keys_and_counts_a_physical_chord() {
+    fn hook_installs_and_counts_only_physical_habit_chords_once() {
         let (tx, rx) = mpsc::channel::<(String, String)>();
         start(Recorder::new(library::get()), move |family, action| {
             let _ = tx.send((family.to_string(), action.to_string()));
@@ -187,36 +183,34 @@ mod tests {
             std::thread::sleep(Duration::from_millis(20));
         }
         assert!(HOOK_READY.load(Ordering::SeqCst), "SetWindowsHookExW(WH_KEYBOARD_LL) failed");
+        let quiet = |what: &str| assert!(rx.recv_timeout(Duration::from_millis(400)).is_err(), "{what} was counted");
 
-        // Synthetic input (another program, a remote tool, cmdnudge itself) is never counted.
-        let c = b'C' as u16;
-        let ctrl = VK_LCONTROL;
-        if send(&[key(ctrl, false), key(c, false), key(c, true), key(ctrl, true)]) == 4 {
-            assert!(rx.recv_timeout(Duration::from_millis(800)).is_err(), "an injected Ctrl+C was counted");
-        } else {
-            eprintln!("SendInput blocked on this runner; injected-key check skipped");
-        }
+        // Synthetic input (another program, a remote tool) is never counted.
+        on_key(C, WM_KEYDOWN, LLKHF_INJECTED, ctrl);
+        on_key(C, WM_KEYUP, LLKHF_INJECTED, ctrl);
+        quiet("an injected Ctrl+C");
 
-        // A physical Ctrl+C: Ctrl held, then the hook sees C the way Windows delivers it.
-        send(&[key(ctrl, false)]);
-        std::thread::sleep(Duration::from_millis(100));
-        if !down(ctrl) {
-            send(&[key(ctrl, true)]);
-            eprintln!("no interactive input desktop on this runner; physical-chord check skipped");
-            return;
-        }
-        physical(c as u32, WM_KEYDOWN);
-        physical(c as u32, WM_KEYDOWN); // auto-repeat: still one use
-        physical(c as u32, WM_KEYUP);
-        send(&[key(ctrl, true)]);
+        // A physical Ctrl+C, held long enough to auto-repeat: one use, through the worker and
+        // the foreground-app lookup.
+        on_key(C, WM_KEYDOWN, 0, ctrl);
+        on_key(C, WM_KEYDOWN, 0, ctrl);
+        on_key(C, WM_KEYUP, 0, ctrl);
         let (family, action) = rx.recv_timeout(Duration::from_secs(2)).expect("a physical Ctrl+C was not counted");
         assert_eq!(action, "edit.copy");
-        eprintln!("counted Ctrl+C as {action} in family {family}");
-        assert!(rx.recv_timeout(Duration::from_millis(500)).is_err(), "auto-repeat counted twice");
+        eprintln!("hook installed; physical Ctrl+C counted as {action} in family {family}");
+        quiet("the auto-repeat");
 
-        // Plain typing never leaves the hook.
-        physical(b'Q' as u32, WM_KEYDOWN);
-        physical(b'Q' as u32, WM_KEYUP);
-        assert!(rx.recv_timeout(Duration::from_millis(500)).is_err(), "a plain letter was counted");
+        // Pressed again after release: a second use.
+        on_key(C, WM_KEYDOWN, 0, ctrl);
+        on_key(C, WM_KEYUP, 0, ctrl);
+        assert!(rx.recv_timeout(Duration::from_secs(2)).is_ok(), "a second Ctrl+C was not counted");
+
+        // Plain typing, capitals included, never leaves the hook.
+        on_key(Q, WM_KEYDOWN, 0, WinMods::default);
+        on_key(Q, WM_KEYUP, 0, WinMods::default);
+        quiet("a plain letter");
+        on_key(Q, WM_KEYDOWN, 0, || WinMods { shift: true, ..Default::default() });
+        on_key(Q, WM_KEYUP, 0, || WinMods { shift: true, ..Default::default() });
+        quiet("Shift+Q");
     }
 }
