@@ -625,6 +625,13 @@ function SettingsView(p: { status: Status; settings: Settings; save: (s: Partial
             </em>
           </span>
         </label>
+        <label className="switch-row">
+          <input type="checkbox" checked={settings.quietWhileSharing} onChange={(e) => save({ quietWhileSharing: e.target.checked })} />
+          <span>
+            <b>Quiet while sharing your screen</b>
+            <em>No hints pop up while Zoom, Teams, Meet or a screen recording captures your screen. Counting and the guard keep working.</em>
+          </span>
+        </label>
         <div className="row">
           <button className="btn ghost" onClick={() => api.testToast("hint")}>Show a sample hint</button>
           <button className="btn ghost" onClick={() => api.testToast("guard")}>Show the guard</button>

@@ -36,6 +36,8 @@ pub struct Settings {
     pub sync_folder: Option<String>,
     /// Tips for menu items picked with the mouse (#19). Experimental, off by default.
     pub menu_tips: bool,
+    /// No toasts while the screen is being shared or recorded (#24); counting continues. On by default.
+    pub quiet_while_sharing: bool,
 }
 
 impl Default for Settings {
@@ -52,6 +54,7 @@ impl Default for Settings {
             onboarded: false,
             sync_folder: None,
             menu_tips: false,
+            quiet_while_sharing: true,
         }
     }
 }
@@ -59,5 +62,27 @@ impl Default for Settings {
 impl Settings {
     pub fn is_paused(&self, now: i64) -> bool {
         self.paused_until.is_some_and(|t| t > now)
+    }
+
+    /// Whether a toast may appear now (#24): never while the screen is shared and the user kept
+    /// "quiet while sharing" on. Counting and the guard are not affected.
+    pub fn toasts_allowed(&self, screen_shared: bool) -> bool {
+        !(self.quiet_while_sharing && screen_shared)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn quiet_while_sharing_is_on_by_default_and_only_silences_toasts_when_shared() {
+        // Settings saved before #24 have no such field: they get the default (on).
+        let old: Settings = serde_json::from_str(r#"{"mode":"toast","menuTips":true}"#).unwrap();
+        assert!(old.quiet_while_sharing);
+        assert!(old.toasts_allowed(false));
+        assert!(!old.toasts_allowed(true));
+        let off = Settings { quiet_while_sharing: false, ..Settings::default() };
+        assert!(off.toasts_allowed(true));
     }
 }

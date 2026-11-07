@@ -14,6 +14,7 @@ export interface Settings {
   onboarded: boolean;
   syncFolder: string | null;
   menuTips: boolean;
+  quietWhileSharing: boolean;
 }
 export interface RecentHint { from: string; to: string; label: string; guarded: boolean }
 export interface KeyCheck { pressed: string; family: string; meaning: string | null }

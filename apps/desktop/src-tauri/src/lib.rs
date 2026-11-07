@@ -612,7 +612,12 @@ pub fn run() {
             {
                 mac::toast::init(app.handle().clone());
                 mac::toast::set_position(&e.settings.read().unwrap().position);
-                e.on_toast(mac::toast::show);
+                e.on_toast(|spec| {
+                    // #24: no toast while the screen is shared or recorded (counting goes on).
+                    if engine().settings.read().unwrap().toasts_allowed(mac::context::screen_shared()) {
+                        mac::toast::show(spec);
+                    }
+                });
                 // The layout can change at any time (menu bar input menu). TIS wants the main thread.
                 let handle = app.handle().clone();
                 std::thread::spawn(move || loop {
