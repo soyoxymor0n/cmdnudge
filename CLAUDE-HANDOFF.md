@@ -14,7 +14,7 @@ issues (`built` label = committed). Decisions waiting on the owner: issues label
 | `apps/desktop` sync | #16: export/import + file sync (`src-tauri/src/sync.rs`). One `<device>.json` per computer in `<folder>/cmdnudge-sync/`, rows summed per device (D3), every file validated against the library. Settings → "Your other computers". |
 | `apps/desktop` menu tips | #19, experimental, off by default (`menu_tips.rs`, `mac/menus.rs`): AX observer, tip on the third mouse pick of a menu item with a shortcut. Unit-tested and running without errors; **not yet seen working on real menus** (the screen was locked during the night build) — switch it on in Settings → Learning mode and pick e.g. Finder → Go → Home three times. |
 | `apps/desktop` Windows recorder | #17: `win_recorder.rs` (platform-free: virtual key → chord, exe → family, chord → library action) and `win/mod.rs` (cfg(windows): `WH_KEYBOARD_LL` hook, counts `win_use`, no toast). Counts reach the Mac through file sync; the Mac's "Still costing you" list then orders by Windows usage. Compiles for `x86_64-pc-windows-msvc` (checked locally in isolation) and the CI `windows` job builds and tests the whole app on Windows. **Never run on a real Windows machine yet**, and there is no Windows installer (#25 signing). |
-| hosted sync (account) | #18, all code done and configured for every environment; production goes live with the first promote of `main` (Next 4). Web: `api/sync.mjs` + `api/link.mjs` (503 until env is set) → `server/sync.mjs` (validation, device ownership, merge, delete account), `server/link.mjs` (revocable link tokens, SHA-256 stored), `server/turso-http.mjs`, `server/clerk-token.mjs`; sign-in page `src/connect.html`. App: Settings → "Sync with an account" (disabled until the server answers), `hosted.rs` (state-checked `cmdnudge://link` deep link), `sync::hosted_sync`. Verified with the installed app against a local server built from the real handlers. Contract: `docs/setup/03-architecture.md`. |
+| hosted sync (account) | #18, all code done and configured for every environment; live on cmdnudge.com; one real sign-up from the app still to do (Next 4). Web: `api/sync.mjs` + `api/link.mjs` (503 until env is set) → `server/sync.mjs` (validation, device ownership, merge, delete account), `server/link.mjs` (revocable link tokens, SHA-256 stored), `server/turso-http.mjs`, `server/clerk-token.mjs`; sign-in page `src/connect.html`. App: Settings → "Sync with an account" (disabled until the server answers), `hosted.rs` (state-checked `cmdnudge://link` deep link), `sync::hosted_sync`. Verified with the installed app against a local server built from the real handlers. Contract: `docs/setup/03-architecture.md`. |
 | `.github/workflows` | `ci.yml` (tests on every push) and `release.yml` (#20: tag `v*` → universal DMG + SHA256SUMS → draft release; signs + notarizes once the Apple secrets from #23 exist). Universal build verified locally. |
 | `apps/web` | cmdnudge.com: static, zero-dependency. `node build.mjs` → `dist/`. Uses the real library.json + chord.mjs; pastes `is_key_combo` from filter.rs into the privacy section. Privacy + imprint pages. |
 
@@ -53,12 +53,11 @@ issues (`built` label = committed). Decisions waiting on the owner: issues label
    password, Google off. Env complete for every scope (Turso pair, `CLERK_PUBLISHABLE_KEY`,
    `CLERK_JWT_KEY`); values mirrored in `website-assets/.scaffold-secrets` as `*_CMDNUDGE[_PROD]`.
    Privacy page names Clerk, Turso and email sign-in.
+   Live since 2026-11-07 (owner said go live): `main` created from beta, Vercel git-linked with
+   production branch `main` (GitHub default was main during `vercel git connect`, then set back to
+   beta), `beta.cmdnudge.com` bound to gitBranch beta. Pushes to main deploy production, pushes to
+   beta deploy previews. Verified on cmdnudge.com: landing 200, www 301 to apex, /privacy 200,
+   /api/link answers with pk_live, /api/sync without a key 401, Clerk domain status complete.
    Still open:
-   - No production deployment yet, on purpose (production only after the owner promotes `main`),
-     so cmdnudge.com shows Vercel's 404 until then. No git link: GitHub has no `main`, and Vercel
-     takes the production branch from the repo default at connect time (`beta`). Once `main` exists:
-     set the GitHub default to `main`, `vercel git connect`, set it back to `beta`, add
-     `beta.cmdnudge.com` with gitBranch beta. Until then deploy previews from a `git archive HEAD`
-     copy with `vercel deploy --target=preview` and re-alias beta.cmdnudge.com.
-   - After the first production deploy: sign up once on cmdnudge.com/connect from the app to confirm
+   - Sign up once on cmdnudge.com/connect from the app to confirm
      production sync end to end.
