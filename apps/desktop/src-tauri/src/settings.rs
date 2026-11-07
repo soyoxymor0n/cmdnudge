@@ -34,7 +34,7 @@ pub struct Settings {
     pub onboarded: bool,
     /// Shared folder for file sync (#16); None = off.
     pub sync_folder: Option<String>,
-    /// Tips for menu items picked with the mouse (#19). Experimental, off by default.
+    /// Tips for menu items picked with the mouse (#19). On by default (owner, 2026-11-07).
     pub menu_tips: bool,
     /// No toasts while the screen is being shared or recorded (#24); counting continues. On by default.
     pub quiet_while_sharing: bool,
@@ -53,7 +53,7 @@ impl Default for Settings {
             position: "bottom-right".into(),
             onboarded: false,
             sync_folder: None,
-            menu_tips: false,
+            menu_tips: true,
             quiet_while_sharing: true,
         }
     }

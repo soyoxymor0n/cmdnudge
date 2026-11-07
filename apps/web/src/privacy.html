@@ -38,10 +38,11 @@
       <div class="card"><b>Counters, on your Mac.</b> For each known habit and app family (for example “Copy, in a chat app”): how often you used the Windows habit, how often the Mac shortcut, and the first and last day it happened. Plus one total per day. Days, never times.</div>
       <div class="card"><b>Settings, on your Mac.</b> Your choices (mode, guard, keyboard, layout, muted app families) and a random device id that only labels your own rows.</div>
       <div class="card"><b>The frontmost app, briefly, in memory.</b> Its bundle id decides which app family applies; its name appears in a guard message (“would quit Slack”). Neither is stored.</div>
-      <p>The app never stores what you type, which keys you pressed, the time of day, window titles or app names. The schema has no column for any of them; a test in the source code (<code>scripted_session_stores_only_library_counters</code>) checks this.</p>
+      <div class="card"><b>The menu item you pick with the mouse, briefly, in memory.</b> Menu tips are on by default and can be turned off in settings. Through Accessibility the app sees which menu item you choose and whether it has a keyboard shortcut. The item's name is held only while the menu is open; how often you picked it is counted in memory under a scrambled key (a hash) and is gone when the app quits. Neither is written to the database or a file.</div>
+      <p>The app never stores what you type, which keys you pressed, the time of day, window titles, menu item names or app names. The schema has no column for any of them; a test in the source code (<code>scripted_session_stores_only_library_counters</code>) checks this.</p>
 
       <h2>How the information is used</h2>
-      <p>Only to show you hints, block the right-⌘Q collision if you keep the guard on, and show your own progress in the app. Nothing is used for advertising, profiling or training any model.</p>
+      <p>Only to show you hints (including the shortcut for a menu item you keep clicking), block the right-⌘Q collision if you keep the guard on, and show your own progress in the app. Nothing is used for advertising, profiling or training any model.</p>
 
       <h2>What we do not do</h2>
       <p>No ad profiles, no tracking across sites or apps, no selling or sharing of data, no data brokers. There is no AI model involved anywhere in cmdnudge.</p>
