@@ -148,7 +148,11 @@ extern "C" fn on_notification(_o: AXObserverRef, element: AXUIElementRef, notifi
         let mut guard = cell.borrow_mut();
         let Some(st) = guard.as_mut() else { return };
         let name = unsafe { (*(notification as *const NSString)).to_string() };
+        let debug = std::env::var_os("CMDNUDGE_DEBUG").is_some();
         unsafe {
+            if debug {
+                eprintln!("menus: {name} title={:?}", attr_string(element, st.names.title));
+            }
             if name == "AXMenuItemSelected" {
                 let n = &st.names;
                 let cmd_char = attr_string(element, n.cmd_char);
@@ -167,6 +171,9 @@ extern "C" fn on_notification(_o: AXObserverRef, element: AXUIElementRef, notifi
             } else if name == "AXMenuClosed" {
                 let Some(h) = st.highlight.take() else { return };
                 let since_up = CGEventSourceSecondsSinceLastEventType(K_CG_EVENT_SOURCE_STATE_COMBINED, K_CG_EVENT_LEFT_MOUSE_UP);
+                if debug {
+                    eprintln!("menus: closed after {:?} ({}), mouse-up {since_up:.2}s ago, pointer {:?}, frame {:?}", h.at.elapsed(), h.shortcut, pointer(), h.frame);
+                }
                 if !menu_tips::picked_by_mouse(since_up, h.at.elapsed(), pointer(), h.frame) {
                     return;
                 }
@@ -245,8 +252,13 @@ pub fn start(engine: &'static Engine) {
             });
             let own = std::process::id() as i32;
             let mut current: Option<Observing> = None;
+            let mut last_wanted: Option<bool> = None;
             loop {
                 let wanted = engine.settings.read().unwrap().menu_tips && super::context::accessibility_granted();
+                if std::env::var_os("CMDNUDGE_DEBUG").is_some() && last_wanted != Some(wanted) {
+                    eprintln!("menus: observing={wanted} (setting {}, accessibility {})", engine.settings.read().unwrap().menu_tips, super::context::accessibility_granted());
+                }
+                last_wanted = Some(wanted);
                 let front = if wanted {
                     NSWorkspace::sharedWorkspace().frontmostApplication().map(|a| {
                         (a.processIdentifier(), a.bundleIdentifier().map(|s| s.to_string()).unwrap_or_default())
