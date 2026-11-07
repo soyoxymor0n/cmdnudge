@@ -58,6 +58,9 @@ jobs:
         run: |
           if [ "${{ steps.mode.outputs.signed }}" = self ]; then
             # Sign with the self-made certificate, skip notarization (it needs the paid program).
+            # Tauri only uses identities macOS calls valid, so trust the public half for code
+            # signing on this runner first (the private key stays in the secret).
+            sudo security add-trusted-cert -d -r trustRoot -p codeSign -k /Library/Keychains/System.keychain src-tauri/signing/cmdnudge-selfsigned.pem
             unset APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID
           elif [ "${{ steps.mode.outputs.signed }}" != true ]; then
             # Missing secrets still arrive as empty variables, and Tauri then tries to import an empty
