@@ -1,4 +1,8 @@
-/* cmdnudge desktop UI. Follows the macOS appearance (no in-app toggle, docs/setup/04). */
+/* cmdnudge desktop UI. Follows the macOS appearance (no in-app toggle, docs/setup/04).
+   Brand colours, the same as the logo and cmdnudge.com (apps/web/src/landing.css):
+     --primary   lime, the Mac answer       --secondary purple, the Windows habit
+   -ink variants are for text on the window ground; --on-primary is text on a primary fill.
+   --accent and --cool are the older names for the two roles and only point at them. */
 :root {
   --bg: #f6f6f8;
   --side: #ececf0;
@@ -6,9 +10,14 @@
   --line: rgba(15, 18, 30, 0.09);
   --text: #12141c;
   --muted: #6b6f7d;
-  --accent: #ff8a3d;
-  --accent-ink: #b9500c;
-  --cool: #4f7dff;
+  --primary: #7cc417;
+  --primary-ink: #4a8200;
+  --secondary: #7c3aed;
+  --secondary-ink: #6d28d9;
+  --on-primary: #10200a;
+  --accent: var(--primary);
+  --accent-ink: var(--primary-ink);
+  --cool: var(--secondary-ink);
   --ok: #1f9d55;
   --warn: #c98a00;
   --bad: #d93838;
@@ -29,7 +38,10 @@
     --line: rgba(255, 255, 255, 0.08);
     --text: #eceef4;
     --muted: #9196a5;
-    --accent-ink: #ffab70;
+    --primary: #b6f23a;
+    --primary-ink: #c8f56a;
+    --secondary: #a78bfa;
+    --secondary-ink: #c4b5fd;
     --key-bg: #2a2c36;
   }
 }
@@ -53,8 +65,7 @@ p { margin: 6px 0; }
 .drag.top { position: absolute; top: 0; left: 210px; right: 0; z-index: 5; }
 .side { background: var(--side); border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 0 10px 12px; }
 .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; padding: 4px 8px 14px; }
-.brand-mark { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; background: var(--text); color: var(--bg); font-size: 14px; position: relative; }
-.brand-mark::after { content: ""; position: absolute; top: -3px; right: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); border: 2px solid var(--side); }
+.brand-mark, .brand-mark img { display: block; width: 26px; height: 26px; }
 nav { display: flex; flex-direction: column; gap: 2px; }
 .nav { all: unset; display: flex; align-items: center; gap: 9px; height: var(--h); padding: 0 10px; border-radius: 8px; color: var(--text); }
 .nav:hover { background: var(--line); }
@@ -79,7 +90,7 @@ nav { display: flex; flex-direction: column; gap: 2px; }
 .btn { height: var(--h); padding: 0 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-weight: 550; }
 .btn:hover { border-color: color-mix(in srgb, var(--text) 25%, transparent); }
 .btn:active { transform: translateY(1px); }
-.btn.primary { background: var(--accent); border-color: transparent; color: #1a0d03; }
+.btn.primary { background: var(--accent); border-color: transparent; color: var(--on-primary); }
 .btn.primary:hover { filter: brightness(1.05); }
 .btn.ghost { background: transparent; }
 .btn.small { height: 26px; padding: 0 10px; font-size: 12px; justify-self: start; }
@@ -103,7 +114,7 @@ label.inline { display: inline-flex; align-items: center; gap: 8px; }
 .steps li { display: flex; align-items: center; gap: 7px; padding: 6px 12px 6px 6px; border-radius: 999px; color: var(--muted); }
 .steps li b { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--line); font-size: 11px; }
 .steps li.on { color: var(--text); background: var(--card); box-shadow: 0 0 0 1px var(--line); }
-.steps li.on b { background: var(--accent); color: #1a0d03; }
+.steps li.on b { background: var(--accent); color: var(--on-primary); }
 .steps li.past b { background: color-mix(in srgb, var(--ok) 25%, transparent); color: var(--ok); }
 .hero-card h1 { font-size: 26px; line-height: 1.15; max-width: 22ch; }
 .lede { font-size: 14.5px; color: var(--muted); max-width: 60ch; }
@@ -134,8 +145,8 @@ label.inline { display: inline-flex; align-items: center; gap: 8px; }
 .tile { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: grid; gap: 2px; }
 .tile b { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
 .tile span { color: var(--muted); font-size: 12px; }
-.tile.warm b { color: var(--accent-ink); }
-.tile.cool b { color: var(--cool); }
+.tile.warm b { color: var(--secondary-ink); }
+.tile.cool b { color: var(--primary-ink); }
 .tile.ok b { color: var(--ok); }
 .habits { list-style: none; margin: 0; padding: 0; }
 .habits li { display: grid; grid-template-columns: auto auto auto 1fr auto 70px; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
@@ -144,13 +155,13 @@ label.inline { display: inline-flex; align-items: center; gap: 8px; }
 .habit-label em { font-style: normal; color: var(--muted); margin-left: 8px; font-size: 12px; }
 .habit-count { font-variant-numeric: tabular-nums; font-weight: 650; }
 .meter { height: 6px; border-radius: 999px; background: var(--key-bg); overflow: hidden; }
-.meter i { display: block; height: 100%; background: var(--ok); border-radius: inherit; }
+.meter i { display: block; height: 100%; background: var(--secondary); border-radius: inherit; }
 .bars { display: grid; grid-template-columns: repeat(14, 1fr); gap: 6px; height: 120px; align-items: end; }
 .bar { height: 100%; display: grid; grid-template-rows: 1fr auto; grid-template-columns: 1fr 1fr; gap: 2px; align-items: end; }
 .bar i { display: block; border-radius: 3px 3px 0 0; min-height: 2px; }
 .bar span { grid-column: 1 / 3; text-align: center; font-size: 10.5px; color: var(--muted); }
-i.miss { background: var(--accent); }
-i.right { background: var(--cool); }
+i.miss { background: var(--secondary); }
+i.right { background: var(--primary); }
 .legend { display: flex; gap: 16px; margin-top: 10px; color: var(--muted); font-size: 12px; }
 .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }

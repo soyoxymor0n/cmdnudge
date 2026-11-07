@@ -34,7 +34,7 @@ const io = new IntersectionObserver(
   (es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); } }),
   { rootMargin: '0px 0px -8% 0px' },
 );
-$$('.reveal, .step').forEach((el) => io.observe(el));
+$$('.reveal').forEach((el) => io.observe(el));
 
 const topbar = $('#topbar');
 const logo = $('#logo');

@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import logo from "../src-tauri/icons/128x128@2x.png";
+import logoLight from "./assets/logo-light.png";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { api, onChanged, onNavigate, FILTER_URL, REPO } from "./api";
 import type { Library, RawRows, Settings, Stats, Status, SyncReport } from "./api";
@@ -55,7 +57,7 @@ export default function App() {
       <aside className="side">
         <div className="drag" data-tauri-drag-region />
         <div className="brand">
-          <span className="brand-mark" aria-hidden>⌘</span>
+          <picture className="brand-mark"><source srcSet={logo} media="(prefers-color-scheme: dark)" /><img src={logoLight} alt="" aria-hidden /></picture>
           <span>cmdnudge</span>
         </div>
         <nav>
@@ -618,7 +620,7 @@ function SettingsView(p: { status: Status; settings: Settings; save: (s: Partial
         <label className="switch-row">
           <input type="checkbox" checked={settings.menuTips} onChange={(e) => save({ menuTips: e.target.checked })} />
           <span>
-            <b>Tips for menu items you click (experimental)</b>
+            <b>Tips for menu items you click</b>
             <em>
               The third time you pick a menu item with the mouse, cmdnudge shows its shortcut once. Needs Accessibility. Menu names are
               only held while the menu is open, never stored.

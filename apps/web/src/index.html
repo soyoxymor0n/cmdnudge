@@ -63,6 +63,7 @@
     <link rel="stylesheet" href="/duo.css" />
     <script type="module" src="/landing.js"></script>
     <script src="/duo.js" defer></script>
+    <script src="/glyph.js" defer></script>
   </head>
   <body>
     <canvas class="field" id="field" aria-hidden="true"></canvas>
@@ -239,34 +240,60 @@
           </div>
           <p class="sec-lede">cmdnudge lives in the menu bar. No dock icon, no window you have to keep open, nothing to configure before it helps.</p>
         </header>
-        <div class="steps">
-          <article class="step reveal">
-            <span class="step-n">1</span>
+        <div class="bento">
+          <article class="tile t-work reveal">
+            <span class="step-n">2 · Every day</span>
+            <h3>Work the way you always do</h3>
+            <p>Each slip shows the Mac key in the corner for a few seconds. It never takes focus, so the next shortcut you press goes to your app.</p>
+            <div class="mini hintdemo" aria-hidden="true">
+              <div class="hd-doc"><i></i><i></i><i class="hl"></i><i></i></div>
+              <div class="hd-card"><span class="f">Ctrl+C</span><span class="a">→</span><span class="t">⌘C</span><span class="d">Copy</span></div>
+              <div class="modes">
+                <div class="mode is-on"><b>Show</b><span>a hint when you slip</span></div>
+                <div class="mode"><b>Translate</b><span>does the Mac shortcut for you, and shows it</span></div>
+                <div class="mode"><b>Strict</b><span>waits until you press the Mac key</span></div>
+              </div>
+            </div>
+          </article>
+          <article class="tile t-install reveal" style="--d: 120ms">
+            <span class="step-n">1 · Once</span>
             <h3>Install and allow two things</h3>
-            <p>Input Monitoring, so it can notice key combinations. Accessibility, so the guard can stop a right ⌘Q. Then press Ctrl+C once to see it work.</p>
+            <p>Input Monitoring, to notice key combinations. Accessibility, for the guard and the menu tips.</p>
             <div class="mini perms" aria-hidden="true">
               <div class="perm"><span>Input Monitoring</span><i class="sw"></i></div>
               <div class="perm"><span>Accessibility</span><i class="sw"></i></div>
             </div>
           </article>
-          <article class="step reveal" style="--d: 120ms">
-            <span class="step-n">2</span>
-            <h3>Work the way you always do</h3>
-            <p>Each slip shows the Mac key in the corner for a few seconds. It never takes focus, so the next shortcut you press goes to your app.</p>
-            <div class="mini modes" aria-hidden="true">
-              <div class="mode is-on"><b>Show</b><span>a hint when you slip</span></div>
-              <div class="mode"><b>Translate</b><span>does the Mac shortcut for you, and shows it</span></div>
-              <div class="mode"><b>Strict</b><span>waits until you press the Mac key</span></div>
-            </div>
-          </article>
-          <article class="step reveal" style="--d: 240ms">
-            <span class="step-n">3</span>
+          <article class="tile t-bars reveal" style="--d: 200ms">
+            <span class="step-n">3 · Over weeks</span>
             <h3>Watch your misses drop</h3>
-            <p>It counts slips and correct Mac uses per habit, on your Mac only. Ten correct uses and two weeks without a slip, and that hint goes quiet.</p>
+            <p>Ten correct uses and two weeks without a slip, and that hint goes quiet.</p>
             <div class="mini bars" aria-hidden="true">
               <div class="bars-row" id="howBars"></div>
               <div class="bars-cap"><span>14 days</span><span class="chip-ok">Copy · mastered</span></div>
               <span class="illus">illustration</span>
+            </div>
+          </article>
+          <article class="tile t-menu reveal" style="--d: 120ms">
+            <span class="step-n">Also with the mouse</span>
+            <h3>Clicking through menus? <span class="mac-text">It notices that too.</span></h3>
+            <p>Pick the same menu item with the mouse three times, say Edit → Copy, and the corner shows its shortcut once. Only items that have one. The menu's name is held while it is open and never stored.</p>
+            <div class="mini menudemo" aria-hidden="true">
+              <div class="md-menu">
+                <div class="md-bar"><b>Edit</b></div>
+                <div class="md-item"><span>Undo</span><kbd>⌘Z</kbd></div>
+                <div class="md-item"><span>Cut</span><kbd>⌘X</kbd></div>
+                <div class="md-item is-hit"><span>Copy</span><kbd>⌘C</kbd><i class="md-ptr"></i></div>
+                <div class="md-item"><span>Paste</span><kbd>⌘V</kbd></div>
+              </div>
+              <div class="hd-card md-tip"><span class="d">Tip</span><span class="t">⌘C</span><span class="d">Copy</span></div>
+            </div>
+          </article>
+          <article class="tile t-stat glyph-host reveal" style="--d: 200ms" data-glyph="⌘C ⌘V ⌘Z ⇧⌘4 ⌘TAB ⌥← ⌘F ⌘Q">
+            <div class="stat-body">
+              <span class="step-n">The habit map</span>
+              <p class="stat-big"><b>{{habits}}</b> habits</p>
+              <p class="stat-sub"><b>{{rules}}</b> rules for US, German and Austrian layouts, on Apple and PC keyboards.<span class="hover-only"> Move the pointer over this card.</span></p>
             </div>
           </article>
         </div>

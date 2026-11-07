@@ -40,7 +40,10 @@ async function main() {
   await Clerk.load();
   if (!Clerk.user) {
     say('Sign in to continue.');
-    Clerk.mountSignIn(document.getElementById('sign-in'), { forceRedirectUrl: location.href, signUpForceRedirectUrl: location.href });
+    // Brand colours from landing.css (--secondary, purple: Clerk's buttons carry white text).
+    const css = getComputedStyle(document.documentElement);
+    const appearance = { variables: { colorPrimary: css.getPropertyValue('--secondary').trim() || '#7c3aed' } };
+    Clerk.mountSignIn(document.getElementById('sign-in'), { forceRedirectUrl: location.href, signUpForceRedirectUrl: location.href, appearance });
     Clerk.addListener(({ user }) => user && location.reload());
     return;
   }
