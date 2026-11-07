@@ -10,6 +10,7 @@
     1 hero        - recognition: "Ctrl+C. Nothing happens." That is me.
     2 marquee     - the size of it: so many little habits
     3 statement   - the sting, in the owner's words: the @ that quits Slack, the screenshot you look up again
+    3b desk       - the double life: a PC at work, a Mac at home, the same hands; the card answers on the Mac
     4 trap        - the "aha": the same physical key means AltGr on Windows and right ⌘ on a Mac
     5 how         - relief: three plain steps, the misses go down
     6 playground  - agency (the peak): press your own habit, watch the real library answer
@@ -58,7 +59,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" />
     <link rel="stylesheet" href="/landing.css" />
+    <link rel="stylesheet" href="/duo.css" />
     <script type="module" src="/landing.js"></script>
+    <script src="/duo.js" defer></script>
   </head>
   <body>
     <canvas class="field" id="field" aria-hidden="true"></canvas>
@@ -157,6 +160,37 @@
       <section class="statement" id="statement" data-rail="Why">
         <p class="eyebrow">Why this exists</p>
         <p class="statement-text" id="statementText">You meant to type an @ for a colleague, and your Mac quit the chat app instead. You took a screenshot last week, and today you work out the keys all over again. And nobody tells you how long it takes until your hands stop slipping.</p>
+      </section>
+
+      <!-- 3b · Two keyboards: the lids open on scroll, then a 28 s scene (duo.js) ------ -->
+      <section class="duo" id="duo" data-rail="Two keyboards">
+        <div class="duo-pin">
+          <header class="duo-head">
+            <p class="eyebrow">Two keyboards</p>
+            <h2 class="h2">Windows at work, a Mac at home. <span class="mac-text">The same hands.</span></h2>
+          </header>
+          <div class="duo-stage" id="duoStage">
+            <div class="duo-glow" aria-hidden="true"><i></i><i></i><i></i></div>
+            <figure class="lap lap-win" data-host="win" aria-label="A Windows laptop at work: a document in Word; Ctrl+C and Ctrl+V copy a line, Win+Shift+S cuts out a screenshot">
+              <div class="lap-aura" aria-hidden="true"></div>
+              <div class="lap-3d"><div class="lap-lid"><div class="lid-bezel"><div class="lid-screen"><div class="scr"></div><div class="glass"></div></div><i class="cam"></i></div></div></div>
+              <div class="lap-kb" aria-hidden="true"></div>
+              <div class="lap-base" aria-hidden="true"><i class="shut"></i></div>
+              <div class="lap-floor" aria-hidden="true"></div>
+            </figure>
+            <figure class="lap lap-mac" data-host="mac" aria-label="A MacBook at home: the same document; Ctrl+C does nothing and cmdnudge shows ⌘C in the corner, Win+Shift+S gets ⇧⌘4">
+              <div class="lap-aura" aria-hidden="true"></div>
+              <div class="lap-3d"><div class="lap-lid"><div class="lid-bezel"><div class="lid-screen"><div class="scr"></div><div class="glass"></div><i class="notch"></i></div></div></div></div>
+              <div class="lap-kb" aria-hidden="true"></div>
+              <div class="lap-base" aria-hidden="true"><i class="shut"></i><i class="scoop"></i></div>
+              <div class="lap-floor" aria-hidden="true"></div>
+            </figure>
+          </div>
+          <div class="duo-foot">
+            <ol class="duo-steps" id="duoSteps" aria-label="The scene, step by step"></ol>
+            <p class="duo-cap" id="duoCap" aria-live="off"></p>
+          </div>
+        </div>
       </section>
 
       <!-- 4 · The trap: one physical key, two meanings ----------------------------- -->

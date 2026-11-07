@@ -1,0 +1,283 @@
+/* cmdnudge.com, "Two keyboards" (duo.js). The laptop pair and its scroll-driven lids come
+   from devdash.eu/welcome (dev-dashboard/landing/duo.css), recoloured: the PC glows in
+   --hand blue, the Mac in --mac orange. The screens are 1000 x 625 drawings scaled to the
+   glass (--sc); the hands strip under each laptop shows the keys being pressed. */
+
+.duo { position: relative; height: 250vh; }
+.duo-pin {
+  position: sticky; top: 0; height: 100vh; height: 100svh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 76px var(--gutter) 22px; overflow-x: clip;
+}
+.duo-head { position: relative; z-index: 2; text-align: center; }
+.duo-head .h2 { font-size: clamp(28px, 3.3vw, 46px); }
+
+.duo-stage {
+  --q: 0;
+  position: relative; width: 100%; max-width: 1240px;
+  display: flex; justify-content: center; align-items: flex-end; gap: clamp(22px, 4.5vw, 72px);
+  margin-top: clamp(26px, 5vh, 56px);
+}
+/* The room light: grows with the lids. */
+.duo-glow { position: absolute; inset: -38% -14% -30%; pointer-events: none; opacity: var(--q); }
+.duo-glow i { position: absolute; border-radius: 50%; }
+.duo-glow i:nth-child(1) { left: 4%; top: 6%; width: 54%; height: 94%; background: radial-gradient(closest-side, rgba(70, 150, 255, 0.5), rgba(70, 150, 255, 0.12) 55%, transparent); }
+.duo-glow i:nth-child(2) { right: 4%; top: 4%; width: 54%; height: 98%; background: radial-gradient(closest-side, rgba(255, 138, 61, 0.42), rgba(255, 138, 61, 0.1) 55%, transparent); }
+.duo-glow i:nth-child(3) { left: 22%; right: 22%; bottom: 8%; height: 34%; background: radial-gradient(closest-side, rgba(200, 220, 255, 0.12), transparent); }
+
+/* ---------- one laptop ---------- */
+.lap {
+  --w: min(520px, 40vw, calc((100svh - 330px) / 0.72));
+  --bh: calc(var(--w) * 0.03);
+  --a: -90deg; --p: 0; --kb: 0;
+  position: relative; width: var(--w); margin: 0; flex: none;
+}
+.lap-aura {
+  position: absolute; left: -32%; right: -32%; top: -26%; bottom: -8%; z-index: 0; pointer-events: none;
+  opacity: 0; transition: opacity 1.8s var(--ease);
+}
+.lap.is-on .lap-aura { opacity: 1; }
+.lap-win .lap-aura { background: radial-gradient(closest-side at 50% 52%, rgba(80, 160, 255, 0.5), rgba(60, 110, 255, 0.16) 52%, transparent 78%); }
+.lap-mac .lap-aura { background: radial-gradient(closest-side at 50% 52%, rgba(255, 140, 60, 0.42), rgba(255, 180, 120, 0.12) 52%, transparent 78%); }
+
+.lap-3d { position: relative; z-index: 2; perspective: 2600px; perspective-origin: 50% 100%; }
+.lap-lid { transform-origin: 50% 100%; transform: rotateX(var(--a)); will-change: transform; }
+.lap.is-shut .lap-lid { visibility: hidden; }
+.lid-bezel { position: relative; background: #040507; }
+.lap-win .lid-bezel { padding: 3.1% 2.6% 5.4%; border-radius: 12px 12px 3px 3px; box-shadow: 0 0 0 2px #2c313a, 0 0 0 3px #15181d, 0 30px 60px -30px rgba(0, 0, 0, 0.9); }
+.lap-mac .lid-bezel { padding: 1.7% 1.7% 2.9%; border-radius: 16px 16px 4px 4px; box-shadow: 0 0 0 2px #b7bbc2, 0 0 0 3px #7d8189, 0 30px 60px -30px rgba(0, 0, 0, 0.9); }
+/* Keyboard light catching the lower bezel. */
+.lid-bezel::after {
+  content: ''; position: absolute; left: 4%; right: 4%; bottom: 0; height: 14%; pointer-events: none; border-radius: 0 0 3px 3px;
+  background: radial-gradient(60% 100% at 50% 100%, rgba(205, 225, 255, 0.42), transparent 75%); opacity: var(--kb);
+}
+.lap-mac .lid-bezel::after { background: radial-gradient(60% 100% at 50% 100%, rgba(255, 244, 228, 0.42), transparent 75%); }
+.cam { position: absolute; left: 50%; top: 1.2%; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: #151a22; box-shadow: inset 0 0 0 1px #222a36; }
+
+.lid-screen { position: relative; aspect-ratio: 16 / 10; background: #000; overflow: hidden; }
+.lap-mac .lid-screen { border-radius: 9px 9px 0 0; }
+.lap-win .lid-screen { border-radius: 2px; }
+.notch { position: absolute; left: 50%; top: 0; width: 13%; height: 3.7%; transform: translateX(-50%); background: #040507; border-radius: 0 0 7px 7px; z-index: 3; }
+.glass {
+  position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: linear-gradient(116deg, rgba(255, 255, 255, 0.085) 0%, rgba(255, 255, 255, 0.025) 26%, transparent 40%, transparent 70%, rgba(255, 255, 255, 0.03) 100%);
+}
+.scr {
+  position: absolute; left: 0; top: 0; width: 1000px; height: 625px;
+  transform: scale(var(--sc, 0.5)); transform-origin: 0 0;
+  opacity: 0; filter: brightness(1.9) saturate(0.4) blur(1px);
+  transition: opacity 0.7s ease-out, filter 1.4s var(--ease);
+}
+.lap.is-on .scr { opacity: 1; filter: none; }
+
+/* The keyboard's light, rising out of the gap. */
+.lap-kb {
+  position: absolute; z-index: 3; left: -2%; right: -2%; bottom: var(--bh); height: calc(var(--w) * 0.34);
+  pointer-events: none; opacity: var(--kb); mix-blend-mode: screen;
+  background: radial-gradient(50% 100% at 50% 100%, rgba(190, 215, 255, 0.55), rgba(120, 165, 255, 0.16) 46%, transparent 76%);
+}
+.lap-mac .lap-kb { background: radial-gradient(50% 100% at 50% 100%, rgba(255, 240, 222, 0.55), rgba(255, 200, 170, 0.15) 46%, transparent 76%); }
+.lap-kb::after { content: ''; position: absolute; left: 12%; right: 12%; bottom: 0; height: 2px; border-radius: 2px; background: rgba(235, 242, 255, 0.9); filter: blur(1.5px); }
+
+.lap-base { position: relative; z-index: 4; height: var(--bh); margin: 0 -5.5%; border-radius: 0 0 50% 50% / 0 0 100% 100%; }
+.lap-win .lap-base { margin: 0 -4.5%; background: linear-gradient(180deg, #6a717d 0%, #3b414b 22%, #262a31 70%, #15181c 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2); }
+.lap-mac .lap-base { background: linear-gradient(180deg, #f6f7f9 0%, #d3d6db 20%, #a4a8af 70%, #6c7078 100%); box-shadow: inset 0 1px 0 #fff; }
+.lap-base .scoop { position: absolute; left: 50%; top: 0; width: 12%; height: 46%; transform: translateX(-50%); border-radius: 0 0 40% 40% / 0 0 100% 100%; background: linear-gradient(#8f939a, #c4c7cc); }
+/* The closed lid's edge, sitting on the base; it goes as the lid lifts. */
+.lap-base .shut { position: absolute; left: 5%; right: 5%; bottom: 100%; height: calc(var(--w) * 0.011); border-radius: 3px 3px 0 0; opacity: max(0, calc(1 - var(--p) * 16)); }
+.lap-win .lap-base .shut { left: 4.1%; right: 4.1%; background: linear-gradient(#4a505b, #2a2e35); }
+.lap-mac .lap-base .shut { background: linear-gradient(#d9dbe0, #9fa3aa); }
+.lap-floor { position: absolute; z-index: 1; left: -16%; right: -16%; top: 100%; height: calc(var(--w) * 0.16); pointer-events: none;
+  background: radial-gradient(48% 30% at 50% 0%, rgba(0, 0, 0, 0.85), transparent 80%); }
+.lap-floor::after { content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity 1.8s var(--ease); }
+.lap.is-on .lap-floor::after { opacity: 1; }
+.lap-win .lap-floor::after { background: radial-gradient(40% 60% at 50% 0%, rgba(90, 160, 255, 0.22), transparent 80%); }
+.lap-mac .lap-floor::after { background: radial-gradient(40% 60% at 50% 0%, rgba(255, 140, 60, 0.2), transparent 80%); }
+
+/* ---------- steps ---------- */
+.duo-foot { position: relative; z-index: 2; width: 100%; max-width: 1000px; margin-top: clamp(30px, 6vh, 64px); }
+.duo-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.duo-steps button {
+  width: 100%; display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: baseline; text-align: left;
+  padding: 6px 2px; border: 0; background: none; color: var(--ink-3); font: 500 13px/1.25 var(--body); cursor: pointer; transition: color 0.3s;
+}
+.duo-steps button:hover, .duo-steps button.is-on { color: var(--ink); }
+.duo-steps button:focus-visible { outline: 2px solid var(--mac); outline-offset: 3px; border-radius: 4px; }
+.duo-steps .n { font: 700 11px/1 var(--display); letter-spacing: 0.08em; color: var(--ink-3); }
+.duo-steps .is-on .n { color: var(--mac); }
+.duo-steps i { grid-column: 1 / -1; height: 2px; border-radius: 2px; background: var(--line-2); overflow: hidden; margin-top: 6px; }
+.duo-steps i b { display: block; height: 100%; width: calc(var(--f, 0) * 100%); background: linear-gradient(90deg, var(--mac), #ffc28a); }
+.duo-cap { margin: 16px auto 0; max-width: 40em; min-height: 3.2em; text-align: center; color: var(--ink-2); font-size: 15px; }
+
+@media (max-width: 900px) {
+  .duo { height: auto; }
+  .duo-pin { position: relative; height: auto; padding: 100px var(--gutter) 40px; }
+  .duo-stage { gap: 12px; margin-top: 34px; }
+  .lap { --w: calc((100vw - 2 * var(--gutter) - 12px) / 2); }
+  .lap-mac .lid-bezel, .lap-win .lid-bezel { border-radius: 8px 8px 2px 2px; }
+  .duo-steps { display: flex; overflow-x: auto; scrollbar-width: none; gap: 14px; }
+  .duo-steps::-webkit-scrollbar { display: none; }
+  .duo-steps li { flex: none; width: 150px; }
+  .duo-cap { font-size: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .duo { height: auto; }
+  .duo-pin { position: relative; height: auto; padding-block: 110px 60px; }
+  .duo *, .duo *::before, .duo *::after { transition: none !important; animation: none !important; }
+}
+/* =================================================================== the screens */
+.os { position: absolute; inset: 0; overflow: hidden; color: #cdd6e4; font: 12px/1.35 var(--ui); -webkit-font-smoothing: antialiased; }
+.os-win { --ui: 'Segoe UI Variable Text', 'Segoe UI', Inter, system-ui, sans-serif; --mono: 'Cascadia Code', 'Cascadia Mono', Consolas, 'JetBrains Mono', ui-monospace, monospace; }
+.os-mac { --ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, system-ui, sans-serif; --mono: 'SF Mono', Menlo, 'JetBrains Mono', ui-monospace, monospace; }
+.wall { position: absolute; inset: 0; }
+.os-win .wall {
+  background:
+    radial-gradient(38% 58% at 70% 44%, rgba(120, 190, 255, 0.95), transparent 62%),
+    radial-gradient(30% 44% at 58% 62%, rgba(40, 100, 240, 0.9), transparent 70%),
+    radial-gradient(60% 50% at 82% 20%, rgba(30, 70, 200, 0.7), transparent 70%),
+    radial-gradient(70% 70% at 15% 90%, #0b2156, transparent 70%),
+    linear-gradient(160deg, #061433, #02060f);
+}
+.os-mac .wall {
+  background:
+    radial-gradient(45% 55% at 28% 32%, rgba(255, 150, 80, 0.75), transparent 62%),
+    radial-gradient(55% 60% at 74% 66%, rgba(200, 70, 60, 0.75), transparent 66%),
+    radial-gradient(50% 40% at 52% 100%, rgba(255, 170, 110, 0.55), transparent 70%),
+    linear-gradient(168deg, #2c120b, #0b0605);
+}
+
+.app { position: absolute; z-index: 2; opacity: 0; transform: translateY(12px) scale(0.985); transition: opacity 0.5s ease-out, transform 0.7s var(--ease);
+  border-radius: 9px; overflow: hidden; box-shadow: 0 26px 60px -18px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.09); }
+.os-mac .app { border-radius: 11px; }
+.app.on { opacity: 1; transform: none; }
+
+/* timed lines: shown, not faded */
+.os .dl[data-on]:not(.on) { display: none; }
+
+/* ---------- Windows: taskbar ---------- */
+.taskbar { position: absolute; z-index: 5; left: 0; right: 0; bottom: 0; height: 40px; background: rgba(24, 28, 40, 0.86); border-top: 1px solid rgba(255, 255, 255, 0.08); backdrop-filter: blur(20px); }
+.tb-mid { position: absolute; left: 50%; top: 7px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; }
+.tb-search { width: 150px; height: 26px; padding-left: 28px; border-radius: 13px; background: rgba(255, 255, 255, 0.08); color: #a9b1c0; font-size: 11px; line-height: 26px; position: relative; }
+.tb-search::before { content: ''; position: absolute; left: 10px; top: 8px; width: 7px; height: 7px; border: 1.5px solid #a9b1c0; border-radius: 50%; }
+.taskbar .start { width: 26px; height: 26px; border-radius: 6px; background: linear-gradient(135deg, #6fd0ff, #1673ff); }
+.tb-r { position: absolute; right: 12px; top: 6px; display: flex; gap: 14px; align-items: center; font-size: 10.5px; line-height: 1.25; text-align: right; color: #dfe5ef; }
+
+/* app icons, shared by the taskbar and the dock */
+.os .ic { position: relative; display: block; flex: none; width: 26px; height: 26px; border-radius: 6px; text-decoration: none; }
+.os .ic.files { background: linear-gradient(160deg, #ffd66b, #f39b1f); }
+.os .ic.code { background: linear-gradient(160deg, #4fb2ff, #0a62c9); }
+.os .ic.code::before { content: '</>'; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font: 700 9px/1 var(--mono); }
+.os .ic.term { background: #26292f; box-shadow: inset 0 0 0 1px #4a4f58; }
+.os .ic.term::before { content: '>_'; position: absolute; inset: 0; display: grid; place-items: center; color: #7ee787; font: 700 9px/1 var(--mono); }
+.os .ic.web { border-radius: 50%; background: radial-gradient(circle at 50% 50%, #fff 0 22%, transparent 23%), conic-gradient(#ff6b6b 0 33%, #ffd23f 0 66%, #3ddc84 0); }
+.taskbar .ic.on::after { content: ''; position: absolute; left: 50%; bottom: -5px; width: 8px; height: 3px; margin-left: -4px; border-radius: 2px; background: #8fd0ff; }
+
+/* ---------- macOS: menu bar, dock, pointer ---------- */
+.menubar { position: absolute; z-index: 5; left: 0; right: 0; top: 0; height: 24px; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: rgba(40, 16, 8, 0.4); backdrop-filter: blur(20px); color: #f4effa; font-size: 12px; }
+.menubar b { font-weight: 700; }
+.mb-r { margin-left: auto; }
+.mb-r { display: flex; align-items: center; gap: 14px; }
+.mb-cn { position: relative; display: grid; place-items: center; width: 20px; height: 16px; border-radius: 4px; font: 600 12px/1 var(--ui); color: #fff; }
+.mb-cn::after { content: ''; position: absolute; right: -1px; top: 0; width: 5px; height: 5px; border-radius: 50%; background: #ff8a3d; }
+.mb-cn[data-state='open'] { background: rgba(255, 255, 255, 0.22); }
+.dock { position: absolute; z-index: 5; left: 50%; bottom: 6px; transform: translateX(-50%); display: flex; align-items: flex-end; gap: 8px; padding: 7px 9px; border-radius: 17px; background: rgba(255, 255, 255, 0.17); border: 1px solid rgba(255, 255, 255, 0.24); backdrop-filter: blur(18px); }
+.dock .ic { width: 44px; height: 44px; border-radius: 11px; }
+.dock .ic.on::after { content: ''; position: absolute; left: 50%; bottom: -6px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: rgba(255, 255, 255, 0.75); }
+.os .ic.doc { background: linear-gradient(160deg, #5aa2ff, #1d5fd6); }
+.os .ic.doc::before { content: 'W'; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font: 800 12px/1 var(--ui); }
+.os-mac .ic.doc { background: linear-gradient(160deg, #ffb35c, #f07a1a); }
+.os-mac .ic.doc::before { content: '✎'; font-size: 20px; }
+.os .ic.chat { background: linear-gradient(160deg, #a78bfa, #6d4ae0); }
+.os .ic.chat::before { content: '#'; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font: 800 13px/1 var(--ui); }
+.dock .ic.chat::before, .dock .ic.doc::before { font-size: 20px; }
+
+/* ---------- the document, the same on both machines ---------- */
+.app { left: 90px; right: 90px; top: 56px; bottom: 84px; display: flex; flex-direction: column; background: #f7f7f5; color: #1f2328; opacity: 1; transform: none; }
+.os-mac .app { top: 52px; bottom: 92px; }
+.app-bar { flex: none; height: 32px; display: flex; align-items: center; gap: 10px; padding: 0 12px; background: #2b579a; color: #fff; font-size: 12px; }
+.os-mac .app-bar { background: #e9e7e3; color: #3a3a3a; justify-content: center; position: relative; }
+.os-mac .app-bar .tl { position: absolute; left: 12px; top: 10px; }
+.tl { display: inline-flex; gap: 7px; }
+.tl i { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; }
+.tl i:nth-child(2) { background: #febc2e; } .tl i:nth-child(3) { background: #28c840; }
+.app-bar .wc { margin-left: auto; display: flex; gap: 18px; opacity: 0.85; }
+.ribbon { flex: none; height: 30px; display: flex; align-items: center; gap: 16px; padding: 0 14px; background: #f3f2f1; border-bottom: 1px solid #e1dfdd; color: #444; font-size: 11.5px; }
+.ribbon b { color: #2b579a; box-shadow: inset 0 -2px 0 #2b579a; line-height: 28px; font-weight: 600; }
+.os-mac .ribbon { background: #f1efec; color: #555; }
+.os-mac .ribbon b { color: #c2590f; box-shadow: inset 0 -2px 0 #e8691c; }
+.page { flex: 1; min-height: 0; overflow: hidden; margin: 18px auto 0; width: 520px; padding: 28px 40px; background: #fff; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12); font: 13px/1.6 Georgia, 'Times New Roman', serif; }
+.page h4 { margin: 0 0 10px; font: 700 19px/1.25 var(--ui); color: #111; }
+.dl { margin: 0 0 8px; }
+.dl mark { background: transparent; color: inherit; border-radius: 2px; transition: background 0.2s; }
+.dl mark.on { background: #b4d5ff; }
+.os-mac .dl mark.on { background: #ffd2a8; }
+.dl.paste { color: #1f2328; }
+.dl.paste.on { animation: pasted 1.2s ease-out; }
+@keyframes pasted { from { background: rgba(255, 220, 120, 0.7); } to { background: transparent; } }
+
+/* ---------- cmdnudge's corner card (the native panel, dark glass) ---------- */
+.ct { position: absolute; z-index: 7; right: 18px; bottom: 82px; min-width: 210px; padding: 12px 18px; border-radius: 14px; background: rgba(28, 30, 38, 0.82); border: 1px solid rgba(255, 255, 255, 0.12); backdrop-filter: blur(18px) saturate(1.4); box-shadow: 0 18px 44px -14px rgba(0, 0, 0, 0.6); color: #edf1fa;
+  opacity: 0; transform: translateY(10px); transition: opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1), transform 0.36s cubic-bezier(0.22, 1, 0.36, 1); }
+.ct.on { opacity: 1; transform: none; }
+.ct .r { display: flex; align-items: baseline; gap: 9px; white-space: nowrap; }
+.ct .f { font: 600 15px/1.2 var(--ui); color: #6f9bff; }
+.ct .a { color: #7f889b; font-size: 15px; }
+.ct .t { font: 700 22px/1.2 var(--ui); letter-spacing: 0.02em; color: #fff; }
+.ct .d { margin-top: 3px; font-size: 13px; color: #aab3c7; white-space: nowrap; }
+
+/* ---------- the cmdnudge menu (weeks later) ---------- */
+.pop { position: absolute; z-index: 8; right: 70px; top: 30px; width: 300px; padding: 12px 14px 10px; border-radius: 12px; background: rgba(32, 33, 40, 0.92); border: 1px solid rgba(255, 255, 255, 0.12); backdrop-filter: blur(20px); box-shadow: 0 24px 50px -18px rgba(0, 0, 0, 0.75); color: #e9edf6;
+  opacity: 0; transform: translateY(-6px); transition: opacity 0.25s ease-out, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
+.pop.on { opacity: 1; transform: none; }
+.pop h5 { margin: 0 0 8px; font: 600 12px/1 var(--ui); color: #9aa3b5; letter-spacing: 0.02em; }
+.pop .row { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 7px 0; border-top: 1px solid rgba(255, 255, 255, 0.08); font-size: 12.5px; }
+.pop .row b { font-weight: 600; }
+.pop .row s { text-decoration: none; font-size: 11px; padding: 2px 7px; border-radius: 9px; background: rgba(74, 222, 128, 0.16); color: #6ee79a; }
+.pop .row s.l { background: rgba(255, 138, 61, 0.16); color: #ffae73; }
+.pop .row u { grid-column: 1 / -1; text-decoration: none; color: #8f98ab; font-size: 11.5px; }
+.pop .bar { grid-column: 1 / -1; height: 4px; border-radius: 3px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.pop .bar i { display: block; height: 100%; width: calc(var(--v, 0) * 1%); background: linear-gradient(90deg, #5b8cff, #ff8a3d); }
+
+/* ---------- screenshots: Windows snip, Mac crosshair ---------- */
+.dim { position: absolute; inset: 0; z-index: 6; background: rgba(0, 0, 0, 0.42); opacity: 0; transition: opacity 0.25s; }
+.dim.on { opacity: 1; }
+.snipbar { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); display: flex; gap: 6px; padding: 6px 8px; border-radius: 8px; background: #2b2b2b; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5); }
+.snipbar i { width: 26px; height: 22px; border-radius: 4px; background: #3d3d3d; }
+.snipbar i:first-child { background: #4a6fa8; }
+.sel { position: absolute; left: 260px; top: 190px; width: calc(var(--v, 0) * 3.2px); height: calc(var(--v, 0) * 1.5px); border: 1.5px solid #fff; background: rgba(255, 255, 255, 0.14); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3); }
+.os-mac .sel { border: 1px dashed #fff; background: rgba(255, 255, 255, 0.1); }
+.xh { position: absolute; left: calc(260px + var(--v, 0) * 3.2px); top: calc(190px + var(--v, 0) * 1.5px); width: 22px; height: 22px; margin: -11px 0 0 -11px; }
+.xh::before, .xh::after { content: ''; position: absolute; background: #fff; box-shadow: 0 0 2px rgba(0, 0, 0, 0.8); }
+.xh::before { left: 10px; top: 0; width: 2px; height: 22px; }
+.xh::after { top: 10px; left: 0; height: 2px; width: 22px; }
+.note { position: absolute; z-index: 7; right: 14px; bottom: 54px; width: 250px; padding: 12px 14px; border-radius: 8px; background: #2b2b2b; color: #eee; font-size: 12px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+  opacity: 0; transform: translateX(20px); transition: opacity 0.3s, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
+.note.on { opacity: 1; transform: none; }
+.note b { display: block; margin-bottom: 3px; font-weight: 600; }
+.note span { color: #bbb; }
+.thumb { position: absolute; z-index: 7; right: 20px; bottom: 90px; width: 150px; height: 74px; border-radius: 6px; border: 3px solid #fff; background: linear-gradient(#f7f7f5, #e9e7e3); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+  opacity: 0; transform: translateX(30px); transition: opacity 0.3s, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
+.thumb.on { opacity: 1; transform: none; }
+
+/* ---------- the hands: which keys are pressed, under each laptop ---------- */
+.hands { position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + clamp(18px, 3vh, 34px)); display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.hands-label { font: 600 11px/1 var(--display); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+.lap-win .hands-label b { color: var(--hand); font-weight: 700; }
+.lap-mac .hands-label b { color: var(--mac); font-weight: 700; }
+.chords { position: relative; height: 38px; width: 100%; }
+.chord { position: absolute; left: 0; right: 0; top: 0; display: flex; justify-content: center; gap: 6px; opacity: 0; transform: translateY(6px); transition: opacity 0.18s, transform 0.25s var(--ease); }
+.chord.on { opacity: 1; transform: none; }
+.chord kbd { min-width: 34px; height: 34px; padding: 0 10px; display: grid; place-items: center; border-radius: 8px; font: 600 14px/1 var(--body); color: var(--ink);
+  background: var(--key-bg, rgba(255, 255, 255, 0.06)); border: 1px solid var(--line-2); box-shadow: 0 2px 0 var(--line-2); }
+.lap-win .chord kbd { border-color: color-mix(in srgb, var(--hand) 55%, transparent); }
+.lap-mac .chord kbd { border-color: color-mix(in srgb, var(--mac) 55%, transparent); }
+.chord.on kbd { animation: press 0.5s var(--ease); }
+@keyframes press { 0% { transform: translateY(0); } 25% { transform: translateY(2px); box-shadow: 0 0 0 var(--line-2); } 100% { transform: none; } }
+.chord.miss kbd { color: var(--hand); }
+.duo-stage { margin-bottom: clamp(70px, 10vh, 96px); }
+@media (max-width: 900px) {
+  .chord kbd { min-width: 24px; height: 26px; padding: 0 6px; font-size: 11px; border-radius: 6px; }
+  .chords { height: 28px; }
+  .hands-label { font-size: 9.5px; letter-spacing: 0.08em; }
+  .duo-stage { margin-bottom: 70px; }
+}
