@@ -1,4 +1,5 @@
-# Release build from public CI (#20, D15): universal app + DMG, SHA-256 checksums, draft GitHub release.
+# Release build from public CI (#20, D15): universal Mac app + DMG, the Windows recorder as an NSIS
+# installer (#17, unsigned for now: owner decision #25), SHA-256 checksums, one draft GitHub release.
 # Runs on a version tag (v0.2.0) or by hand. Developer ID signing and notarization switch on by
 # themselves once these repository secrets exist (owner decision #23):
 #   APPLE_CERTIFICATE (base64 .p12), APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY,
@@ -66,24 +67,75 @@ jobs:
             spctl --assess --type execute --verbose "$APP"
             xcrun stapler validate "$APP"
           fi
-      - name: Checksums
+      - name: Collect
         id: files
         run: |
           mkdir -p out
           VERSION=$(node -p "require('./apps/desktop/src-tauri/tauri.conf.json').version")
           cp apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg "out/cmdnudge-$VERSION-mac-universal.dmg"
-          (cd out && shasum -a 256 *.dmg > SHA256SUMS.txt && cat SHA256SUMS.txt)
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "${{ steps.mode.outputs.signed }}" > out/mac-signed.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac
+          path: out/
+
+  windows:
+    # Unsigned until a code-signing certificate exists (#25): SmartScreen asks "Run anyway".
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Tests first
+        working-directory: apps/desktop/src-tauri
+        run: cargo test --locked
+      - name: Build installer
+        working-directory: apps/desktop
+        run: |
+          npm ci
+          npx tauri build --bundles nsis
+      - name: Collect
+        shell: bash
+        run: |
+          mkdir -p out
+          VERSION=$(node -p "require('./apps/desktop/src-tauri/tauri.conf.json').version")
+          cp apps/desktop/src-tauri/target/release/bundle/nsis/*-setup.exe "out/cmdnudge-$VERSION-windows-x64-setup.exe"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: out/
+
+  release:
+    needs: [mac, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dl
+      - name: Checksums
+        id: files
+        run: |
+          mkdir -p out
+          cp dl/mac/*.dmg dl/windows/*.exe out/
+          echo "signed=$(cat dl/mac/mac-signed.txt)" >> "$GITHUB_OUTPUT"
+          (cd out && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          echo "version=$(node -p "require('./apps/desktop/src-tauri/tauri.conf.json').version")" >> "$GITHUB_OUTPUT"
       - name: Draft release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${GITHUB_REF_NAME}"
           case "$TAG" in v*) ;; *) TAG="v${{ steps.files.outputs.version }}-ci.${GITHUB_RUN_NUMBER}" ;; esac
-          if [ "${{ steps.mode.outputs.signed }}" = true ]; then
-            NOTE="Signed with Developer ID and notarized by Apple. Built by GitHub Actions run ${GITHUB_RUN_ID} from commit ${GITHUB_SHA}."
+          if [ "${{ steps.files.outputs.signed }}" = true ]; then
+            NOTE="Mac: signed with Developer ID and notarized by Apple."
           else
-            NOTE="Not notarized (ad-hoc signature): macOS will refuse to open it without a right-click → Open. Built by GitHub Actions run ${GITHUB_RUN_ID} from commit ${GITHUB_SHA}."
+            NOTE="Mac: not notarized (ad-hoc signature): macOS will refuse to open it without a right-click → Open."
           fi
+          NOTE="$NOTE Windows: the recorder installer is not code-signed yet; SmartScreen shows \"More info → Run anyway\". Built by GitHub Actions run ${GITHUB_RUN_ID} from commit ${GITHUB_SHA}."
           printf '%s\n\nSHA-256:\n```\n%s\n```\n' "$NOTE" "$(cat out/SHA256SUMS.txt)" > notes.md
           gh release create "$TAG" out/* --draft --title "cmdnudge $TAG" --notes-file notes.md --target "$GITHUB_SHA"
