@@ -46,8 +46,8 @@ The native toast (`mac/toast.rs`) uses macOS system colours on purpose.
 ## Next
 
 1. Owner steps left (all answered 2026-11-07): #21 in Spaceship → Email forwarding, click "Verify DNS changes"
-   (the MX/SPF records now live in Vercel DNS) and keep the forward hello@ → priccogente+cmdnudge@gmail.com; #23 create a Developer ID Application certificate
-   + app-specific password (steps on #23), then set the APPLE_* repo secrets. #24 built (quiet while
+   (the MX/SPF records now live in Vercel DNS) and keep the forward hello@ → priccogente+cmdnudge@gmail.com; #23 decided 2026-11-08: no paid Apple program; releases are signed with a
+   self-made certificate (release.yml `self-signed` mode, details on #23), not notarized. #24 built (quiet while
    sharing), #25 decided unsigned (the release workflow builds an unsigned Windows installer).
 2. #19 is default-on (Open-3 decided 2026-11-07). Existing installs keep their saved setting. One real-mouse try is still worth doing.
 3. #20 finishes with the first notarized tag after #23. #17: run `npm run tauri dev` in
