@@ -9,7 +9,7 @@ description: >-
 # Capabilities: do it yourself first
 
 The owner is the bottleneck. Owner-only: money, entering credentials, product decisions, approvals. Everything else:
-try it, then report. Decisions go through `AskUserQuestion`. If a path is truly missing, explore with the owner what
+try it, then report. Decisions go through `AskUserQuestion`; No one to ask (no `AskUserQuestion`, or a non-interactive routine): `owner-questions` > "No one to ask" (safe default, `owner-action` issue with a `decision` block, continue). If a path is truly missing, explore with the owner what
 would enable it (token, MCP login, CLI), add it, and record it in the gap table below. Never print secret values.
 
 ## First step in any cloud routine

@@ -17,3 +17,12 @@ until they are back at a computer.
   continue. Never ask "OK to proceed?" about a plan.
 - Subagents and unattended/headless runs cannot reach the owner: report the open question back in
   the final message instead of asking.
+
+## No one to ask
+
+If `AskUserQuestion` is unavailable, errors, or the session is non-interactive (`CLAUDE_CODE_REMOTE` set and
+running as a routine), never block or wait. (1) Take the safe, reversible default and continue. (2) Record the
+question as an `owner-action` issue with a valid ```` ```decision ```` block (recommended option = the default
+taken; `docs/standards/owner-decisions-instruction.md`): cloud `node tools/gh-rest.mjs issue-create --title T
+--label owner-action --input body.json`; local `node tools/feature-issues.mjs --decisions`. (3) Say in the
+summary which default was taken and the issue number.
