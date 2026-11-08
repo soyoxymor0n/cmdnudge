@@ -51,7 +51,14 @@ The native toast (`mac/toast.rs`) uses macOS system colours on purpose.
 
 0. Hand-test on the installed app (2026-11-08): Keep (#29: hover a hint, Keep in app / everywhere,
    undo in Settings), the VS Code terminal check (#30: Ctrl+C in the integrated terminal stays quiet),
-   and the layout select (#33). Windows recorder for the new layouts: #34. Suggest keeping: #31.
+   and the layout select (#33). Windows recorder for the new layouts: #34. Suggest keeping (#31, built
+   and installed): after 5 uses of one Windows shortcut in one app on 2 days without the Mac way within
+   10 s, the next hint itself asks "looks deliberate. Keep it?" with Keep in app / Keep everywhere /
+   Not now; the evidence rows show under Settings → What is stored. To test without waiting two days,
+   insert a row into the `evidence` table (uses 5, days 2) in the app's SQLite file. Landing (#35 laptops
+   seen from the chair with ghost hands, #36 layouts section) committed, not pushed.
+   `tools/feature-drift.mjs` reports "0 doc features": it looks for docs/features, this repo keeps them
+   in docs/setup/02-features.md; pre-existing, not touched.
 1. Owner steps left (all answered 2026-11-07): #21 in Spaceship → Email forwarding, click "Verify DNS changes"
    (the MX/SPF records now live in Vercel DNS) and keep the forward hello@ → priccogente+cmdnudge@gmail.com; #23 decided 2026-11-08: no paid Apple program; releases are signed with a
    self-made certificate (release.yml `self-signed` mode, details on #23), not notarized. #24 built (quiet while
