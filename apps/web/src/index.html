@@ -10,6 +10,7 @@
     1 hero        - recognition: "Ctrl+C. Nothing happens." That is me.
     2 marquee     - the size of it: so many little habits
     3 statement   - the sting, in the owner's words: the @ that quits Slack, the screenshot you look up again
+    3a cost       - the sum of it: looking shortcuts up is context switching; a small calculator
     3b desk       - the double life: a PC at work, a Mac at home, the same hands; the card answers on the Mac
     4 trap        - the "aha": the same physical key means AltGr on Windows and right ⌘ on a Mac
     5 how         - relief: three plain steps, the misses go down
@@ -118,7 +119,7 @@
               </a>
               <a class="btn btn-ghost" href="#play">Try your habits here</a>
             </div>
-            <p class="fine reveal" style="--d: 320ms">For macOS · US, German and Austrian layouts · Apple and PC keyboards</p>
+            <p class="fine reveal" style="--d: 320ms">For macOS · US and German QWERTZ layouts · Apple and PC keyboards</p>
           </div>
 
           <div class="hero-slot reveal" style="--d: 200ms">
@@ -164,6 +165,41 @@
         <p class="statement-text" id="statementText">You meant to type an @ for a colleague, and your Mac quit the chat app instead. You took a screenshot last week, and today you work out the keys all over again. And nobody tells you how long it takes until your hands stop slipping.</p>
       </section>
 
+      <!-- 3a · The cost: context switching, as a small calculator (landing.js) ------- -->
+      <section class="cost" id="cost" data-rail="The cost">
+        <header class="sec-head split">
+          <div>
+            <p class="eyebrow">The hidden cost</p>
+            <h2 class="h2">Looking it up takes a minute. <span class="mac-text">Finding your place again takes longer.</span></h2>
+          </div>
+          <p class="sec-lede">Each time you stop to search for a shortcut, or ask a chatbot, you leave what you were doing. That's context switching, and the search is the cheap part. The expensive part is getting back into your task. Gloria Mark's studies of office work at UC Irvine found people took about 25 minutes on average to return to an interrupted task (Mark, González and Harris, CHI 2005). A shortcut look-up is a much smaller break, so the numbers below start low. Set them to your day.</p>
+        </header>
+        <div class="calc" id="calc">
+          <div class="calc-inputs">
+            <label class="calc-row">
+              <span class="calc-q">Slips a day <em>Ctrl+C that does nothing, then undo and retry. We count 3 seconds each.</em></span>
+              <input type="range" min="0" max="60" step="1" value="15" data-calc="slips" aria-describedby="calcOut" />
+              <output data-show="slips">15</output>
+            </label>
+            <label class="calc-row">
+              <span class="calc-q">Look-ups a day <em>A web search or a chatbot question. We count 1 minute each.</em></span>
+              <input type="range" min="0" max="10" step="1" value="2" data-calc="lookups" aria-describedby="calcOut" />
+              <output data-show="lookups">2</output>
+            </label>
+            <label class="calc-row">
+              <span class="calc-q">Minutes to get back into your task <em>After each look-up. Far below the 25 from the study.</em></span>
+              <input type="range" min="1" max="25" step="1" value="3" data-calc="back" aria-describedby="calcOut" />
+              <output data-show="back">3</output>
+            </label>
+          </div>
+          <div class="calc-out" id="calcOut" aria-live="polite">
+            <p class="calc-big"><b id="calcHours">32</b> hours a year</p>
+            <p class="calc-sub" id="calcSub">9 minutes a day, over 220 working days. About 4 full working days.</p>
+            <p class="calc-note">cmdnudge shows the answer in the corner of the screen you're already looking at. There's nothing to search and no task to leave.</p>
+          </div>
+        </div>
+      </section>
+
       <!-- 3b · Two keyboards: the lids open on scroll, then a 28 s scene (duo.js) ------ -->
       <section class="duo" id="duo" data-rail="Two keyboards">
         <div class="duo-pin">
@@ -201,7 +237,7 @@
           <header class="sec-head">
             <p class="eyebrow">The ⌘Q trap</p>
             <h2 class="h2">Same key, <span class="mac-text">different meaning.</span></h2>
-            <p class="sec-lede">On a German or Austrian keyboard, @ is AltGr+Q. On a Mac keyboard, the key under your thumb is right ⌘. Your hand does what it always did, and the app is gone.</p>
+            <p class="sec-lede">On a German QWERTZ keyboard, @ is AltGr+Q. On a Mac keyboard, the key under your thumb is right ⌘. Your hand does what it always did, and the app is gone.</p>
           </header>
           <div class="trap-stage" id="trapStage" data-step="0">
             <div class="kb-row kb-pc" aria-label="Windows keyboard, bottom row">
@@ -225,7 +261,7 @@
           <ol class="trap-steps" id="trapSteps">
             <li data-step="1"><b>On Windows</b> your thumb finds AltGr, your finger finds Q, and an @ appears.</li>
             <li data-step="2"><b>On a Mac keyboard</b> the same spot is right ⌘. ⌘Q quits the app. Your message, gone.</li>
-            <li data-step="3"><b>cmdnudge stops it</b> and tells you the Mac way: ⌥L types @. Only right ⌘Q, only on German and Austrian layouts.</li>
+            <li data-step="3"><b>cmdnudge stops it</b> and tells you the Mac way: ⌥L types @. Only right ⌘Q, only on the German QWERTZ layout.</li>
             <li data-step="4"><b>Left ⌘Q still quits.</b> When you mean it, you can. The guard is one switch in settings.</li>
           </ol>
         </div>
@@ -241,7 +277,16 @@
           <p class="sec-lede">cmdnudge lives in the menu bar. No dock icon, no window you have to keep open, nothing to configure before it helps.</p>
         </header>
         <div class="bento">
-          <article class="tile t-work reveal">
+          <article class="tile t-install reveal">
+            <span class="step-n">1 · Once</span>
+            <h3>Install and allow two things</h3>
+            <p>Input Monitoring, to notice key combinations. Accessibility, for the guard and the menu tips.</p>
+            <div class="mini perms" aria-hidden="true">
+              <div class="perm"><span>Input Monitoring</span><i class="sw"></i></div>
+              <div class="perm"><span>Accessibility</span><i class="sw"></i></div>
+            </div>
+          </article>
+          <article class="tile t-work reveal" style="--d: 120ms">
             <span class="step-n">2 · Every day</span>
             <h3>Work the way you always do</h3>
             <p>Each slip shows the Mac key in the corner for a few seconds. It never takes focus, so the next shortcut you press goes to your app.</p>
@@ -253,15 +298,6 @@
                 <div class="mode"><b>Translate</b><span>does the Mac shortcut for you, and shows it</span></div>
                 <div class="mode"><b>Strict</b><span>waits until you press the Mac key</span></div>
               </div>
-            </div>
-          </article>
-          <article class="tile t-install reveal" style="--d: 120ms">
-            <span class="step-n">1 · Once</span>
-            <h3>Install and allow two things</h3>
-            <p>Input Monitoring, to notice key combinations. Accessibility, for the guard and the menu tips.</p>
-            <div class="mini perms" aria-hidden="true">
-              <div class="perm"><span>Input Monitoring</span><i class="sw"></i></div>
-              <div class="perm"><span>Accessibility</span><i class="sw"></i></div>
             </div>
           </article>
           <article class="tile t-bars reveal" style="--d: 200ms">
@@ -293,7 +329,7 @@
             <div class="stat-body">
               <span class="step-n">The habit map</span>
               <p class="stat-big"><b>{{habits}}</b> habits</p>
-              <p class="stat-sub"><b>{{rules}}</b> rules for US, German and Austrian layouts, on Apple and PC keyboards.<span class="hover-only"> Move the pointer over this card.</span></p>
+              <p class="stat-sub"><b>{{rules}}</b> rules for the US and German QWERTZ layouts, on Apple and PC keyboards.<span class="hover-only"> Move the pointer over this card.</span></p>
             </div>
           </article>
         </div>
@@ -321,8 +357,7 @@
               <span class="ctl-label">Layout</span>
               <div class="seg" data-ctl="layout" role="radiogroup" aria-label="Layout">
                 <button type="button" role="radio" data-v="us" aria-checked="false">US</button>
-                <button type="button" role="radio" data-v="de" aria-checked="false">German</button>
-                <button type="button" role="radio" data-v="at" aria-checked="true">Austrian</button>
+                <button type="button" role="radio" data-v="de" aria-checked="true">German QWERTZ</button>
               </div>
             </div>
             <div class="ctl">
@@ -363,7 +398,7 @@
             <p class="eyebrow">The habit map</p>
             <h2 class="h2"><span data-count="habits">{{habits}}</span> Windows habits. <span class="mac-text">Each with its Mac answer.</span></h2>
           </div>
-          <p class="sec-lede">Every row links to Apple's and Microsoft's own documentation, or to the measurement it comes from. The keys follow the keyboard and layout you picked above (<b id="mapCtx">Apple, Austrian</b>).</p>
+          <p class="sec-lede">Every row links to Apple's and Microsoft's own documentation, or to the measurement it comes from. The keys follow the keyboard and layout you picked above (<b id="mapCtx">Apple, German QWERTZ</b>).</p>
         </header>
         <div class="map-tools">
           <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><input id="mapSearch" type="search" placeholder="Search: screenshot, tab, @ …" aria-label="Search habits" /></label>
@@ -430,7 +465,7 @@
           </details>
           <details>
             <summary>Which keyboard layouts work?</summary>
-            <p>US, German and Austrian, chosen from your Mac's input source automatically. Shortcuts like Ctrl+C work on other layouts too; the typing habits (@, €, braces) are only known for German and Austrian so far.</p>
+            <p>US and German QWERTZ (as used in Germany and Austria), chosen from your Mac's input source automatically. On other QWERTY layouts, such as UK, Spanish or Italian, letter shortcuts like Ctrl+C work too. French AZERTY isn't supported yet, and the typing habits (@, €, braces) are only known for German QWERTZ so far.</p>
           </details>
           <details>
             <summary>I use a PC keyboard on my Mac. Does that matter?</summary>
@@ -461,7 +496,7 @@
         <div class="stats" id="stats">
           <div class="stat"><b data-to="{{habits}}">{{habits}}</b><span>Windows habits</span></div>
           <div class="stat"><b data-to="{{rules}}">{{rules}}</b><span>rules across layouts and keyboards</span></div>
-          <div class="stat"><b data-to="3">3</b><span>layouts: US, German, Austrian</span></div>
+          <div class="stat"><b data-to="2">2</b><span>layouts: US and German QWERTZ</span></div>
           <div class="stat"><b data-to="0">0</b><span>keystrokes stored</span></div>
         </div>
         <h2 class="display finale-line" id="finaleLine">Your hands will catch up.<br /><span class="mac-text">Let them.</span></h2>

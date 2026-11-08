@@ -181,7 +181,7 @@ function showToast(el, t) {
   const cap = $('#heroCaption');
   const sel = $('#heroSel');
   const type = $('#heroType');
-  const ctx = { layout: 'at', keyboard: 'apple', family: 'chat' };
+  const ctx = { layout: 'de', keyboard: 'apple', family: 'chat' };
   const rule = (id) => lib.habitRules.find((r) => r.habit === id && r.layout === ctx.layout && r.keyboard === ctx.keyboard);
   const WIN = { ctrl: 'Ctrl', win: 'Win', alt: 'Alt', altgr: 'AltGr', shift: 'Shift' };
   const capKeys = (chord, cls = 'is-down') => {
@@ -357,11 +357,11 @@ function showToast(el, t) {
 const lang = (navigator.language || 'en').toLowerCase();
 const state = {
   keyboard: 'apple',
-  layout: lang === 'de-at' ? 'at' : lang.startsWith('de') ? 'de' : 'us',
+  layout: lang.startsWith('de') ? 'de' : 'us',
   family: 'system',
   first: null,
 };
-const LAYOUT_NAME = { us: 'US', de: 'German', at: 'Austrian' };
+const LAYOUT_NAME = { us: 'US', de: 'German QWERTZ' };
 const isMacOS = /Mac/i.test(navigator.userAgentData?.platform || navigator.platform || '');
 
 function segs() {
@@ -542,3 +542,22 @@ function remember() {
 })();
 
 segs(); chips(); renderMap();
+
+/* ---------------------------------------------------------------- 3a · context-switch calculator */
+(() => {
+  const calc = document.getElementById('calc');
+  if (!calc) return;
+  const WORKDAYS = 220;
+  const val = (k) => Number(calc.querySelector(`[data-calc="${k}"]`).value);
+  const update = () => {
+    for (const k of ['slips', 'lookups', 'back']) calc.querySelector(`[data-show="${k}"]`).textContent = val(k);
+    const perDay = (val('slips') * 3) / 60 + val('lookups') * (1 + val('back'));
+    const hours = (perDay * WORKDAYS) / 60;
+    const days = hours / 8;
+    document.getElementById('calcHours').textContent = hours < 10 ? hours.toFixed(1) : Math.round(hours);
+    const dayText = days >= 1 ? ` About ${days < 10 ? Math.round(days * 2) / 2 : Math.round(days)} full working day${days >= 1.5 ? 's' : ''}.` : '';
+    document.getElementById('calcSub').textContent = `${Math.round(perDay)} minute${Math.round(perDay) === 1 ? '' : 's'} a day, over ${WORKDAYS} working days.${dayText}`;
+  };
+  calc.addEventListener('input', update);
+  update();
+})();
