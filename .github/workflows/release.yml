@@ -84,13 +84,17 @@ jobs:
           security import "$RUNNER_TEMP/c.p12" -k "$KC" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign >/dev/null
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KP" "$KC" >/dev/null
           rm "$RUNNER_TEMP/c.p12"
-          codesign --force --deep --options runtime --keychain "$KC" -s "$APPLE_SIGNING_IDENTITY" "$B/macos/cmdnudge.app"
+          security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          security find-identity -p codesigning "$KC"
+          # Sign by the certificate's SHA-1: the name lookup skips untrusted identities on some macOS versions.
+          ID=$(security find-identity -p codesigning "$KC" | awk '/\)/ {print $2; exit}')
+          codesign --force --deep --options runtime --keychain "$KC" -s "$ID" "$B/macos/cmdnudge.app"
           VERSION=$(node -p "require('./apps/desktop/src-tauri/tauri.conf.json').version")
           mkdir -p "$RUNNER_TEMP/dmg" "$B/dmg"
           ditto "$B/macos/cmdnudge.app" "$RUNNER_TEMP/dmg/cmdnudge.app"
           ln -s /Applications "$RUNNER_TEMP/dmg/Applications"
           hdiutil create -volname cmdnudge -srcfolder "$RUNNER_TEMP/dmg" -ov -format UDZO "$B/dmg/cmdnudge_${VERSION}_universal.dmg"
-          codesign --force --keychain "$KC" -s "$APPLE_SIGNING_IDENTITY" "$B/dmg/cmdnudge_${VERSION}_universal.dmg"
+          codesign --force --keychain "$KC" -s "$ID" "$B/dmg/cmdnudge_${VERSION}_universal.dmg"
           security delete-keychain "$KC"
       - name: Verify signature
         run: |
