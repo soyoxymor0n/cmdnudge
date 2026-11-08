@@ -1,0 +1,23 @@
+#!/bin/sh
+# commit-msg
+# >>> issue-discipline (managed by blueprint tools/add-issue-discipline.mjs) >>>
+# A feat/fix commit (with or without a (scope)) must cite its GitHub issue: #<number>.
+# Escape (CI and the pre-push hook still report it): COMMIT_MSG_SKIP=1 git commit ...
+_id_subject=$(head -n 1 "$1" 2>/dev/null)
+case "$_id_subject" in
+Merge\ *|Revert\ \"*) ;;
+*)
+	if printf '%s' "$_id_subject" | grep -Eiq '^(feat|fix)(\([^)]*\))?!?:'; then
+		if [ "$COMMIT_MSG_SKIP" = "1" ]; then
+			echo "commit-msg: COMMIT_MSG_SKIP=1 - allowing a feat/fix commit with no issue reference." >&2
+		elif ! grep -qE '#[0-9]+' "$1"; then
+			echo "commit-msg: this feat/fix commit cites no GitHub issue (#<number>)." >&2
+			echo "  File the issue first (gh issue create --label feature), then e.g.: feat(x): do it (#42)" >&2
+			echo "  Not applicable this once: COMMIT_MSG_SKIP=1 git commit ..." >&2
+			exit 1
+		fi
+	fi
+	;;
+esac
+unset _id_subject
+# <<< issue-discipline <<<

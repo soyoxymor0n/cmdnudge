@@ -1,0 +1,66 @@
+name: issue status
+
+# Two jobs in one, on purpose. GitHub bills every job as at least one whole
+# minute, so the old pair (commit-issue-refs.yml + issue-status.yml, a few
+# seconds of work each) cost two minutes on every push; across the fleet that
+# was a fifth of the account's Actions minutes (2026-10 budget survey).
+#
+#   pull_request  check that every feat:/fix: commit cites its issue (#N)
+#   push          the same check (this house pushes straight to beta, so the
+#                 push is the backstop for the pre-push hook), and move the
+#                 issues the push mentions: beta -> on-beta (+ close if
+#                 labelled `feature`), main -> released (+ close if NOT
+#                 labelled `feature`). The issue update uses the default
+#                 GITHUB_TOKEN and never fails the build.
+on:
+  pull_request:
+    branches: [beta, main]
+  push:
+    branches: [beta, main]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  issues:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Update issues
+        # Runs before the check so a refused commit still moves its issues,
+        # exactly as the two separate workflows did.
+        if: github.event_name == 'push'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.ref_name }}
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          if echo "$BEFORE" | grep -qE '^0+$' || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            range="${SHA}^..${SHA}"
+          else
+            range="${BEFORE}..${SHA}"
+          fi
+          node tools/issue-status.mjs "$BRANCH" "$range" "$(git rev-parse --short "$SHA")" || true
+          exit 0
+      - name: Check commit issue references
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            range="origin/${BASE_REF}..${PR_HEAD}"
+          elif echo "$BEFORE" | grep -qE '^0+$' || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            range="${SHA}^..${SHA}"
+          else
+            range="${BEFORE}..${SHA}"
+          fi
+          node tools/check-commit-issue-refs.mjs "$range"

@@ -1,0 +1,24 @@
+#!/bin/sh
+# pre-push
+# >>> issue-discipline (managed by blueprint tools/add-issue-discipline.mjs) >>>
+# Refuse a push to beta/main that carries a feat:/fix: commit with no #<issue>.
+# Escape (loud, on purpose): COMMIT_MSG_SKIP=1 git push ...
+_id_in=$(mktemp 2>/dev/null || echo ".git/issue-discipline-stdin.$$")
+cat > "$_id_in"
+if [ "$COMMIT_MSG_SKIP" = "1" ]; then
+	echo "pre-push: !!! COMMIT_MSG_SKIP=1 - SKIPPING the issue-reference check on this push. !!!" >&2
+	echo "pre-push: !!! feat:/fix: commits without #<issue> will land on beta/main untracked. !!!" >&2
+elif [ -f tools/check-commit-issue-refs.mjs ]; then
+	if ! node tools/check-commit-issue-refs.mjs --pre-push < "$_id_in"; then
+		echo "" >&2
+		echo "pre-push: push refused - a feat:/fix: commit has no issue reference (#<number>)." >&2
+		echo "  Reword it to cite its issue (gh issue create if none fits)." >&2
+		echo "  Not applicable this once: COMMIT_MSG_SKIP=1 git push ..." >&2
+		rm -f "$_id_in"
+		exit 1
+	fi
+fi
+exec < "$_id_in"
+rm -f "$_id_in" 2>/dev/null
+unset _id_in
+# <<< issue-discipline <<<
