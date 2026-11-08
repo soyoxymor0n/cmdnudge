@@ -413,7 +413,7 @@ mod tests {
 
     fn engine() -> &'static Engine {
         let e: &'static Engine = Box::leak(Box::new(Engine::new(Store::in_memory().unwrap())));
-        *e.detected_layout.write().unwrap() = (Layout::At, "com.apple.keylayout.Austrian".into());
+        *e.detected_layout.write().unwrap() = (Layout::De, "com.apple.keylayout.Austrian".into());
         e
     }
 
@@ -561,7 +561,7 @@ mod tests {
     #[test]
     fn guard_toast_says_what_was_prevented() {
         let lib = library::get();
-        let r = lib.habit_rules.iter().find(|r| r.id == "at-sign:at:apple").unwrap();
+        let r = lib.habit_rules.iter().find(|r| r.id == "at-sign:de:apple").unwrap();
         let t = toast_for(r, "Slack", true, false, false);
         assert_eq!(t.from, "Blocked ⌘Q");
         assert_eq!(t.to, "would quit Slack");

@@ -38,9 +38,31 @@ Lesson from prior art (`context/03-prior-art-research.md`): big hand-kept lists 
 
 Rules the checker enforces (pattern from MMF NG's `check_library.py`):
 - every binding has `sourceURL` + `verifiedOn`, or is marked unverified and shown with a ring badge;
-- layout-dependent chords have a variant for each of US/DE/AT;
+- habits name only layouts from `src/layouts.json`; every typing rule that lands on a destructive chord is guarded;
 - `guard: true` only on rules whose arriving chord is destructive on the Mac;
 - no binding duplicates another for the same action × family × platform × layout.
+
+## Layouts (#33)
+
+`src/layouts.json` lists one entry per layout (US, German QWERTZ, Swiss German/French, British
+and British – PC, French and French – PC, Belgian, Spanish, Italian, Portuguese, Swedish/Finnish,
+Norwegian, Danish, Polish – Pro, Czech, Hungarian, and `other`), each with the Mac input sources
+it covers and the Windows layout DLL its AltGr layer comes from. German and Austrian are one
+layout. Variants whose characters sit elsewhere (Spanish – Legacy, Italian – QZERTY, Swedish –
+Legacy, Czech/Hungarian QWERTY, ABC – QWERTZ) are `other` until someone asks.
+
+Nothing about keys is typed in by hand:
+- `src/mac-layouts.json` is measured with `tools/dump-mac-layouts.swift` (UCKeyTranslate, no dead
+  keys): keycode → base, Shift, Option, Option+Shift.
+- `src/windows-altgr.json` is imported with `tools/import-klc.mjs` from the Microsoft Keyboard
+  Layout Creator files at kbdlayout.info.
+- `tools/layouts.mjs` turns every AltGr character people type (@ € { } [ ] \ | ~ µ # ` ^ < > $ £ &,
+  Polish letters on Polish) into a habit: `altgr+<Mac keycap at that physical key>` → the easiest
+  Mac chord that types it. A test checks the synthesis reproduces the hand-verified German rows.
+- The Option chords of the taught characters are reserved on that layout (pressed on purpose).
+- Keycap labels follow one rule in the generator and in `keymap.rs`: the unshifted character, or
+  the digit when the digit is on Shift (AZERTY number row). The app reads keycaps of the active
+  layout at runtime with UCKeyTranslate, so `other` layouts get correct shortcuts too.
 
 ## Physical keyboard matters
 

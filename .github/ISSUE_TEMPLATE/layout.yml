@@ -1,0 +1,30 @@
+name: Map my keyboard layout
+description: Ask for the typing habits (AltGr characters) of a layout cmdnudge does not map yet.
+title: "Layout: "
+labels: ["todo"]
+body:
+  - type: input
+    id: mac
+    attributes:
+      label: Mac layout
+      description: The name in the menu bar input menu, or what cmdnudge shows next to "Layout in use".
+      placeholder: e.g. Dutch, Turkish Q, Croatian – PC
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows layout you came from
+      description: Settings → Time & language → Language → Keyboard on your Windows PC.
+      placeholder: e.g. Turkish Q, Croatian
+  - type: input
+    id: keyboard
+    attributes:
+      label: Keyboard
+      description: Apple keyboard (MacBook, Magic Keyboard) or a PC keyboard.
+  - type: textarea
+    id: chars
+    attributes:
+      label: Characters you typed with AltGr
+      description: The ones your hands still reach for, and which key you pressed on Windows. Optional.
+      placeholder: "@ = AltGr+Q, { = AltGr+7"

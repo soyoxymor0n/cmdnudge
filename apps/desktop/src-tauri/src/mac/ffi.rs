@@ -68,6 +68,7 @@ unsafe extern "C" {
     pub fn CFRunLoopRun();
     pub fn CFRunLoopRunInMode(mode: CFStringRef, seconds: f64, return_after_source_handled: bool) -> i32;
     pub fn CFRelease(cf: *const c_void);
+    pub fn CFDataGetBytePtr(data: *const c_void) -> *const u8;
 }
 
 #[link(name = "ApplicationServices", kind = "framework")]
@@ -82,4 +83,19 @@ unsafe extern "C" {
     pub fn TISCopyCurrentKeyboardLayoutInputSource() -> *mut c_void;
     pub fn TISGetInputSourceProperty(source: *mut c_void, key: CFStringRef) -> *const c_void;
     pub static kTISPropertyInputSourceID: CFStringRef;
+    pub static kTISPropertyUnicodeKeyLayoutData: CFStringRef;
+    pub fn LMGetKbdType() -> u8;
+    pub fn KBGetLayoutType(keyboard_type: i16) -> u32;
+    pub fn UCKeyTranslate(
+        layout: *const c_void,
+        virtual_key_code: u16,
+        key_action: u16,
+        modifier_key_state: u32,
+        keyboard_type: u32,
+        key_translate_options: u32,
+        dead_key_state: *mut u32,
+        max_string_length: usize,
+        actual_string_length: *mut usize,
+        unicode_string: *mut u16,
+    ) -> i32;
 }

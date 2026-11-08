@@ -6,7 +6,7 @@
 | Direction | Why it waits | Architect for it now by |
 |---|---|---|
 | **Practice drills** with a confidence score from accuracy + speed (KeyCombiner pattern, `context/03-prior-art-research.md`) | Passive coaching must prove itself first | storing per-action `mac_correct` counts and the miss → correct latency as a local daily aggregate |
-| **More layouts** (UK, FR, ES, IT, Nordic, Swiss) | US/DE/AT first; each layout needs measured data | layout as a key in every `habit_rule` and `binding` variant ([`08-shortcut-library-and-habit-map.md`](08-shortcut-library-and-habit-map.md)) |
+| ~~**More layouts**~~ (UK, FR, ES, IT, Nordic, Swiss) | **Built in #33**, measured from the Mac and Windows layout files | layout as a key in every `habit_rule` and `binding` variant ([`08-shortcut-library-and-habit-map.md`](08-shortcut-library-and-habit-map.md)) |
 | **Linux recorder** | No owner need; KeyCat-style niche | keeping capture behind one `Chord` interface ([`03-architecture.md`](03-architecture.md)) |
 | **Strict mode polish** (gradual escalation per action: toast → block after N misses) | Toast-only is the default; strict exists but basic | modes as a per-action setting in the matcher, not a global flag |
 | **Mac → Windows direction** (people going the other way) | Different audience | the library is symmetric by action; habit rules are directional data |

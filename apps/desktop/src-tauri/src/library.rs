@@ -44,6 +44,8 @@ pub struct Habit {
     pub action: String,
     pub family: String,
     pub windows: String,
+    #[serde(default)]
+    pub layouts: Vec<Layout>,
 }
 
 #[derive(Deserialize, Clone, Debug, PartialEq)]
@@ -74,9 +76,19 @@ pub struct MacWay {
     pub pattern: Option<Pattern>,
 }
 
+/// A layout from packages/library/src/layouts.json and the Mac input sources it covers (#33).
+#[derive(Deserialize, Clone, Debug)]
+pub struct LayoutInfo {
+    pub id: String,
+    #[allow(dead_code)]
+    pub label: String,
+    pub mac: Vec<String>,
+}
+
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Library {
+    pub layout_info: Vec<LayoutInfo>,
     pub actions: Vec<Action>,
     pub app_families: Vec<AppFamily>,
     #[serde(default)]

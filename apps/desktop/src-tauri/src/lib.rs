@@ -651,6 +651,8 @@ pub fn run() {
                             let layout = keymap::Layout::from_input_source(&id);
                             let mut cur = engine().detected_layout.write().unwrap();
                             if cur.1 != id {
+                                // #33: keycaps come from the layout itself, whatever it is.
+                                keymap::set_runtime(&mac::keycaps::current());
                                 *cur = (layout, id);
                                 drop(cur);
                                 let _ = h.emit("cmdnudge://changed", ());

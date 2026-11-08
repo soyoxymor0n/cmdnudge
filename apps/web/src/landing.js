@@ -355,13 +355,23 @@ function showToast(el, t) {
 
 /* ---------------------------------------------------------------- playground + habit map share one context */
 const lang = (navigator.language || 'en').toLowerCase();
+/** Browser language -> the layout people with that language most likely use. */
+function guessLayout(l) {
+  const by = [[/^de-ch/, 'ch-de'], [/^fr-ch/, 'ch-fr'], [/^(fr|nl)-be/, 'be'], [/^de/, 'de'], [/^fr/, 'fr'], [/^en-(gb|ie)/, 'uk'],
+    [/^es/, 'es'], [/^it/, 'it'], [/^pt-pt/, 'pt'], [/^(sv|fi)/, 'se'], [/^(nb|nn|no)/, 'no'], [/^da/, 'dk'], [/^pl/, 'pl'], [/^cs/, 'cz'], [/^hu/, 'hu']];
+  return by.find(([re]) => re.test(l))?.[1] ?? 'us';
+}
 const state = {
   keyboard: 'apple',
-  layout: lang.startsWith('de') ? 'de' : 'us',
+  layout: guessLayout(lang),
   family: 'system',
   first: null,
 };
-const LAYOUT_NAME = { us: 'US', de: 'German QWERTZ' };
+const LAYOUT_NAME = Object.fromEntries(lib.layoutInfo.map((l) => [l.id, l.label]));
+const layoutSel = $('#layoutSel');
+layoutSel.innerHTML = lib.layoutInfo.filter((l) => l.id !== 'other').map((l) => `<option value="${l.id}">${l.label}</option>`).join('');
+layoutSel.value = state.layout;
+layoutSel.addEventListener('change', () => { state.layout = layoutSel.value; segs(); chips(); renderMap(); });
 const isMacOS = /Mac/i.test(navigator.userAgentData?.platform || navigator.platform || '');
 
 function segs() {
@@ -433,22 +443,21 @@ function pressWindows(win) {
 const CHIPS = ['copy', 'undo', 'snip', 'at-sign', 'switch-app', 'close-app', 'word-left', 'find', 'new-tab', 'reopen-tab', 'lock', 'search', 'show-desktop', 'euro'];
 function chips() {
   const el = $('#chips');
-  el.innerHTML = CHIPS.map((id) => habitById.get(id)).filter((h) => h && h.layouts.includes(state.layout))
+  el.innerHTML = CHIPS.map((id) => habitById.get(`${id}-${state.layout}`) ?? habitById.get(id)).filter((h) => h && h.layouts.includes(state.layout))
     .map((h) => `<button type="button" class="chip${h.guard ? ' is-guard' : ''}" data-win="${h.windows}">${formatWin(h.windows)}<span>${h.label.replace(/ \(.*\)$/, '')}</span></button>`).join('');
 }
 $('#chips').addEventListener('click', (e) => { const b = e.target.closest('.chip'); if (b) pressWindows(b.dataset.win); });
 
-// Physical key (KeyboardEvent.code) → keycap label in the chosen layout, like keymap.rs.
-const CODE_US = { Minus: 'minus', Equal: 'plus', BracketLeft: '[', BracketRight: ']', Semicolon: ';', Quote: "'", Backslash: '\\', Slash: '/', Backquote: '`', IntlBackslash: '§' };
-const CODE_DE = { Minus: 'ß', Equal: '´', BracketLeft: 'ü', BracketRight: 'plus', Semicolon: 'ö', Quote: 'ä', Backslash: '#', Slash: 'minus', Backquote: '^', IntlBackslash: '<' };
+// Physical key (KeyboardEvent.code) → keycap label in the chosen layout, like keymap.rs. The
+// keycaps come from library.json, measured from the Mac layouts themselves.
 const CODE_COMMON = { Comma: 'comma', Period: 'period', Space: 'space', Enter: 'return', NumpadEnter: 'return', Tab: 'tab', Backspace: 'backspace', Escape: 'esc', Delete: 'fwddelete', Home: 'home', End: 'end', PageUp: 'pageup', PageDown: 'pagedown', ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', NumpadAdd: 'plus', NumpadSubtract: 'minus' };
 function keyLabel(code) {
-  const de = state.layout !== 'us';
+  const caps = lib.keycaps[state.layout] ?? lib.keycaps.us;
   let m;
-  if ((m = /^Key([A-Z])$/.exec(code))) { const l = m[1].toLowerCase(); return de && l === 'y' ? 'z' : de && l === 'z' ? 'y' : l; }
-  if ((m = /^(?:Digit|Numpad)(\d)$/.exec(code))) return m[1];
+  if (caps[code]) return caps[code];
+  if ((m = /^Numpad(\d)$/.exec(code))) return m[1];
   if ((m = /^F(\d{1,2})$/.exec(code))) return 'f' + m[1];
-  return (de ? CODE_DE : CODE_US)[code] ?? CODE_COMMON[code] ?? null;
+  return CODE_COMMON[code] ?? null;
 }
 const held = new Set();
 const pad = $('#pad');

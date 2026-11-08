@@ -17,7 +17,7 @@
 | Block | Person-days |
 |---|---|
 | Mac capture, frontmost app, habit matching, toast, guard [P0] | 7 |
-| Habit map + action library data, US/DE/AT, checker [P0/P1] | 4 |
+| Habit map + action library data, 18 layouts (#33), checker [P0/P1] | 4 |
 | Stats screen + missed list + mastered logic [P1] | 3 |
 | Mouse-to-menu hints [P1] (needs the prototype first, **Open-3**) | 3 |
 | Windows recorder [P1] | 4 |
@@ -43,6 +43,7 @@
 - **[P0] Destructive-collision guard.** Block Cmd+Q, Cmd+W, Cmd+Option+W, Cmd+Shift+Q, Cmd+Delete in Finder and similar keys **when they come from a known Windows habit** (for example right Cmd+Q from AltGr+Q on DE/AT). Show the toast with the right key (⌥L for @). On by default, can be switched off. Deliberate Cmd+Q with left Cmd stays untouched (D7).
 - **[P0] Correct-use counting.** When you press the Mac shortcut for a tracked action, count it: this is what moves an action toward "mastered".
 - **[P0] Pause.** Menu bar icon: pause for 1 hour / until tomorrow; auto-pause during secure input.
+- **[P1] Layouts** (#33). 18 layouts with typing habits (US, German QWERTZ, Swiss German/French, British, French, Belgian, Spanish, Italian, Portuguese, Nordic, Polish, Czech, Hungarian); any other layout gets shortcuts with runtime keycaps and a link to ask for its AltGr characters. Guards for Czech/Hungarian AltGr+Q/W (right ⌘Q/⌘W).
 - **[P1] Keep a shortcut** (#29). Point at a hint (or use Recent hints in the menu bar) to keep that Windows shortcut in this app or everywhere: no hint, no slip. Kept list in Settings. Built-in editor terminals count as terminals (#30). Suggesting a keep after repeated deliberate use: #31.
 - **[P1] Learning mode setting:** toast only (default), translate + toast, strict. The guard applies in all three.
 - **[P1] Mouse-to-menu hints.** When a menu item with a shortcut is picked with the mouse, show "you could have pressed ⌘⇧T", only after the same item has been used 3 times by mouse (Key Promoter X threshold, D8). Depends on prototype **Open-3**.

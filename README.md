@@ -12,10 +12,13 @@ Website: [cmdnudge.com](https://cmdnudge.com)
 
 ## What it does
 
-- **Hints** for 85 Windows habits, worked out per layout (US, German, Austrian) and keyboard
-  (Apple or PC), for any app plus Finder, browsers, chat, office apps and code editors.
-- **The ⌘Q guard**: on German and Austrian Apple keyboards, AltGr+Q (@ on Windows) arrives
-  as right ⌘Q and quits the app. cmdnudge stops right ⌘Q and tells you ⌥L. Left ⌘Q still quits.
+- **Hints** for 85 Windows habits plus the AltGr characters (@ € { } [ ] \ | ~ …) of 18
+  keyboard layouts, worked out per layout and keyboard (Apple or PC), for any app plus Finder,
+  browsers, chat, office apps and code editors. On any other layout shortcuts still work: the
+  keycaps are read from the layout itself.
+- **The ⌘Q guard**: on German QWERTZ Apple keyboards, AltGr+Q (@ on Windows) arrives as right ⌘Q
+  and quits the app; on Czech and Hungarian, AltGr+Q/W (\ and |) hit right ⌘Q/⌘W. cmdnudge stops
+  those and tells you the Mac way. Left ⌘Q still quits.
 - **Modes**: show a hint (default), translate (presses the Mac shortcut for you), strict
   (holds the Windows shortcut back until you use the Mac one).
 - **Your habits**: what still costs you, 14 days of slips, what you have mastered.
@@ -61,7 +64,9 @@ cd apps/web && npm run build               # the website into apps/web/dist
 
 ## Credits
 
-The keyboard layout measurements (US, German, Austrian) come from
-[Mac Mouse Fix NG](https://github.com/soyoxymor0n/mac-mouse-fix-ng)'s shortcut research.
+The first keyboard layout measurements (US, German) come from
+[Mac Mouse Fix NG](https://github.com/soyoxymor0n/mac-mouse-fix-ng)'s shortcut research. The
+other layouts are measured from macOS itself (`packages/library/tools/dump-mac-layouts.swift`)
+and from the Windows layout files published at [kbdlayout.info](https://kbdlayout.info).
 
 MIT licence. Not affiliated with Apple or Microsoft.

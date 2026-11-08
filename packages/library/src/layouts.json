@@ -1,0 +1,24 @@
+{
+ "note": "One entry per keyboard layout cmdnudge teaches typing habits for. mac: the TIS input source names (com.apple.keylayout.<name>) that share the entry. windows: the Windows layout DLL whose AltGr layer the habits come from (see windows-altgr.json). Anything not listed is 'other': shortcuts still work, keycaps are read at runtime, no typing habits.",
+ "layouts": [
+  { "id": "us", "label": "US / ABC", "mac": ["US", "ABC", "USExtended", "Australian", "Canadian", "USInternational-PC"], "windows": null },
+  { "id": "de", "label": "German QWERTZ", "mac": ["German", "Austrian", "German-DIN-2137"], "windows": "kbdgr" },
+  { "id": "ch-de", "label": "Swiss German", "mac": ["SwissGerman"], "windows": "kbdsg" },
+  { "id": "ch-fr", "label": "Swiss French", "mac": ["SwissFrench"], "windows": "kbdsf" },
+  { "id": "uk", "label": "British", "mac": ["British", "Irish"], "windows": "kbduk" },
+  { "id": "uk-pc", "label": "British – PC", "mac": ["British-PC"], "windows": "kbduk" },
+  { "id": "fr", "label": "French AZERTY", "mac": ["French", "French-numerical"], "windows": "kbdfr" },
+  { "id": "fr-pc", "label": "French – PC", "mac": ["French-PC"], "windows": "kbdfr" },
+  { "id": "be", "label": "Belgian", "mac": ["Belgian"], "windows": "kbdbe" },
+  { "id": "es", "label": "Spanish", "mac": ["Spanish-ISO"], "windows": "kbdsp" },
+  { "id": "it", "label": "Italian", "mac": ["Italian-Pro"], "windows": "kbdit" },
+  { "id": "pt", "label": "Portuguese", "mac": ["Portuguese"], "windows": "kbdpo" },
+  { "id": "se", "label": "Swedish / Finnish", "mac": ["Swedish-Pro", "Finnish", "FinnishExtended"], "windows": "kbdfi" },
+  { "id": "no", "label": "Norwegian", "mac": ["Norwegian"], "windows": "kbdno" },
+  { "id": "dk", "label": "Danish", "mac": ["Danish"], "windows": "kbdda" },
+  { "id": "pl", "label": "Polish – Pro", "mac": ["PolishPro"], "windows": "kbdpl1" },
+  { "id": "cz", "label": "Czech", "mac": ["Czech"], "windows": "kbdcz" },
+  { "id": "hu", "label": "Hungarian", "mac": ["Hungarian"], "windows": "kbdhu" },
+  { "id": "other", "label": "Other layout", "mac": [], "windows": null }
+ ]
+}

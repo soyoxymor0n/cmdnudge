@@ -2,6 +2,7 @@
 pub mod context;
 mod ffi;
 pub mod focus;
+pub mod keycaps;
 pub mod menus;
 pub mod tap;
 pub mod toast;

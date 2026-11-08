@@ -99,16 +99,16 @@ mod tests {
     #[test]
     fn right_cmd_q_is_guarded_on_austrian_apple_keyboards_only() {
         let lib = library::get();
-        match evaluate(lib, &ctx(Layout::At, Keyboard::Apple, "chat"), &c(RCMD, "q")) {
+        match evaluate(lib, &ctx(Layout::De, Keyboard::Apple, "chat"), &c(RCMD, "q")) {
             Some(Outcome::Habit(r)) => assert!(r.guard && r.habit == "at-sign"),
             other => panic!("expected the @ guard, got {other:?}"),
         }
         // Deliberate quit with the left ⌘ is never touched.
-        assert_eq!(habit_id(evaluate(lib, &ctx(Layout::At, Keyboard::Apple, "chat"), &c(LCMD, "q"))), None);
+        assert_eq!(habit_id(evaluate(lib, &ctx(Layout::De, Keyboard::Apple, "chat"), &c(LCMD, "q"))), None);
         // US layout has no AltGr habit.
         assert_eq!(habit_id(evaluate(lib, &ctx(Layout::Us, Keyboard::Apple, "chat"), &c(RCMD, "q"))), None);
         // A PC keyboard sends right ⌥ for AltGr, so right ⌘Q is deliberate there.
-        assert_eq!(habit_id(evaluate(lib, &ctx(Layout::At, Keyboard::Pc, "chat"), &c(RCMD, "q"))), None);
+        assert_eq!(habit_id(evaluate(lib, &ctx(Layout::De, Keyboard::Pc, "chat"), &c(RCMD, "q"))), None);
     }
 
     #[test]
@@ -128,10 +128,10 @@ mod tests {
     #[test]
     fn terminals_keep_typing_guards_but_drop_ctrl_hints() {
         let lib = library::get();
-        let t = Context { exclusion: Exclusion::Hints, ..ctx(Layout::At, Keyboard::Apple, "terminal") };
+        let t = Context { exclusion: Exclusion::Hints, ..ctx(Layout::De, Keyboard::Apple, "terminal") };
         assert_eq!(habit_id(evaluate(lib, &t, &c(CTRL, "c"))), None);
         assert_eq!(habit_id(evaluate(lib, &t, &c(RCMD, "q"))), Some("at-sign".into()));
-        let vm = Context { exclusion: Exclusion::All, ..ctx(Layout::At, Keyboard::Apple, "remote") };
+        let vm = Context { exclusion: Exclusion::All, ..ctx(Layout::De, Keyboard::Apple, "remote") };
         assert_eq!(evaluate(lib, &vm, &c(RCMD, "q")), None);
     }
 

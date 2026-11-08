@@ -1002,8 +1002,7 @@
    "category": "typing",
    "family": "system",
    "layouts": [
-    "de",
-    "at"
+    "de"
    ],
    "windows": "altgr+q",
    "mac": [
@@ -1020,8 +1019,7 @@
    "category": "typing",
    "family": "system",
    "layouts": [
-    "de",
-    "at"
+    "de"
    ],
    "windows": "altgr+e",
    "mac": [
@@ -1037,8 +1035,7 @@
    "category": "typing",
    "family": "system",
    "layouts": [
-    "de",
-    "at"
+    "de"
    ],
    "windows": "altgr+7",
    "mac": [
@@ -1054,8 +1051,7 @@
    "category": "typing",
    "family": "system",
    "layouts": [
-    "de",
-    "at"
+    "de"
    ],
    "windows": "altgr+8",
    "mac": [
@@ -1071,8 +1067,7 @@
    "category": "typing",
    "family": "system",
    "layouts": [
-    "de",
-    "at"
+    "de"
    ],
    "windows": "altgr+9",
    "mac": [
@@ -1088,8 +1083,7 @@
    "category": "typing",
    "family": "system",
    "layouts": [
-    "de",
-    "at"
+    "de"
    ],
    "windows": "altgr+0",
    "mac": [
@@ -1105,8 +1099,7 @@
    "category": "typing",
    "family": "system",
    "layouts": [
-    "de",
-    "at"
+    "de"
    ],
    "windows": "altgr+ß",
    "mac": [
@@ -1122,8 +1115,7 @@
    "category": "typing",
    "family": "system",
    "layouts": [
-    "de",
-    "at"
+    "de"
    ],
    "windows": "altgr+plus",
    "mac": [
@@ -1139,8 +1131,7 @@
    "category": "typing",
    "family": "system",
    "layouts": [
-    "de",
-    "at"
+    "de"
    ],
    "windows": "altgr+<",
    "mac": [
@@ -1156,8 +1147,7 @@
    "category": "typing",
    "family": "system",
    "layouts": [
-    "de",
-    "at"
+    "de"
    ],
    "windows": "altgr+m",
    "mac": [
@@ -1181,18 +1171,6 @@
    "opt+8"
   ],
   "de": [
-   "opt+l",
-   "opt+e",
-   "opt+5",
-   "opt+6",
-   "opt+7",
-   "opt+8",
-   "opt+9",
-   "opt+n",
-   "opt+shift+7",
-   "opt+m"
-  ],
-  "at": [
    "opt+l",
    "opt+e",
    "opt+5",

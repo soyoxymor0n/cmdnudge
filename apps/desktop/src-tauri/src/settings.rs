@@ -35,7 +35,7 @@ pub struct Settings {
     pub guard: bool,
     /// "auto" | "apple" | "pc"
     pub keyboard: String,
-    /// "auto" | "us" | "de" | "at"
+    /// "auto" or a layout id from layouts.json ("at" is read as "de")
     pub layout: String,
     /// Unix seconds; None = running.
     pub paused_until: Option<i64>,

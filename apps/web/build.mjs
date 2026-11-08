@@ -43,6 +43,7 @@ const counts = {
   habits: lib.habits.length,
   rules: lib.habitRules.length,
   layouts: lib.layouts.length,
+  mapped: lib.layoutInfo.filter((l) => l.id !== 'other').length,
   keyboards: lib.keyboards.length,
   families: lib.appFamilies.length,
 };
@@ -50,7 +51,7 @@ const fill = (html) =>
   html
     .replace('<!--FILTER_RS-->', code)
     .replaceAll('{{FILTER_LINES}}', `L${start + 1}-L${end + 1}`)
-    .replace(/\{\{(habits|rules|layouts|keyboards|families)\}\}/g, (_, k) => String(counts[k]));
+    .replace(/\{\{(habits|rules|layouts|mapped|keyboards|families)\}\}/g, (_, k) => String(counts[k]));
 
 for (const page of ['index.html', 'privacy.html', 'imprint.html']) {
   const p = path.join(dist, page);

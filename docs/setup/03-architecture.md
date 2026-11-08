@@ -66,7 +66,7 @@ What syncs: `counter` rows of this device and `progress` (invariant 5). Days, no
 
 - **Action ≠ chord.** Collapsing "Copy" into "Ctrl+C" breaks every per-app and per-layout case.
 - **App family ≠ executable.** `chrome.exe` and `com.google.Chrome` must meet in one family, or Windows ranking never reaches the Mac coach.
-- **Habit rule depends on layout × keyboard type.** The AltGr→right-Cmd trap exists only on an Apple keyboard with DE/AT layout. A PC keyboard on a Mac sends right Alt as Option instead.
+- **Habit rule depends on layout × keyboard type.** The AltGr→right-Cmd trap exists only on an Apple keyboard with a layout whose AltGr+Q/W types something (German QWERTZ: @; Czech and Hungarian: \ and |). A PC keyboard on a Mac sends right Alt as Option instead.
 - **Per-device counters.** Merging totals instead of per-device rows double-counts on every sync.
 
 ## Infrastructure to provision (input for the `new-project` + `scaffold` skills)

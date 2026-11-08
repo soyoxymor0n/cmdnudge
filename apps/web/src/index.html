@@ -119,7 +119,7 @@
               </a>
               <a class="btn btn-ghost" href="#play">Try your habits here</a>
             </div>
-            <p class="fine reveal" style="--d: 320ms">For macOS · US and German QWERTZ layouts · Apple and PC keyboards</p>
+            <p class="fine reveal" style="--d: 320ms">For macOS · {{mapped}} keyboard layouts · Apple and PC keyboards</p>
           </div>
 
           <div class="hero-slot reveal" style="--d: 200ms">
@@ -329,7 +329,7 @@
             <div class="stat-body">
               <span class="step-n">The habit map</span>
               <p class="stat-big"><b>{{habits}}</b> habits</p>
-              <p class="stat-sub"><b>{{rules}}</b> rules for the US and German QWERTZ layouts, on Apple and PC keyboards.<span class="hover-only"> Move the pointer over this card.</span></p>
+              <p class="stat-sub"><b>{{rules}}</b> rules for {{mapped}} keyboard layouts, on Apple and PC keyboards.<span class="hover-only"> Move the pointer over this card.</span></p>
             </div>
           </article>
         </div>
@@ -355,10 +355,7 @@
             </div>
             <div class="ctl">
               <span class="ctl-label">Layout</span>
-              <div class="seg" data-ctl="layout" role="radiogroup" aria-label="Layout">
-                <button type="button" role="radio" data-v="us" aria-checked="false">US</button>
-                <button type="button" role="radio" data-v="de" aria-checked="true">German QWERTZ</button>
-              </div>
+              <select class="sel" id="layoutSel" aria-label="Layout"></select>
             </div>
             <div class="ctl">
               <span class="ctl-label">You are in</span>
@@ -465,7 +462,7 @@
           </details>
           <details>
             <summary>Which keyboard layouts work?</summary>
-            <p>US and German QWERTZ (as used in Germany and Austria), chosen from your Mac's input source automatically. On other QWERTY layouts, such as UK, Spanish or Italian, letter shortcuts like Ctrl+C work too. French AZERTY isn't supported yet, and the typing habits (@, €, braces) are only known for German QWERTZ so far.</p>
+            <p>{{mapped}}, picked from your Mac's input source: US, German QWERTZ (Germany and Austria), Swiss German and Swiss French, British, French AZERTY, Belgian, Spanish, Italian, Portuguese, Swedish and Finnish, Norwegian, Danish, Polish, Czech and Hungarian. For each one cmdnudge knows where your hands go for @, €, braces and the rest, measured from the Windows and Mac layouts themselves. On any other layout shortcuts like Ctrl+C still work, because the app reads the keycaps from the layout; only the AltGr characters are missing, and the app has a link to ask for yours.</p>
           </details>
           <details>
             <summary>I use a PC keyboard on my Mac. Does that matter?</summary>
@@ -496,7 +493,7 @@
         <div class="stats" id="stats">
           <div class="stat"><b data-to="{{habits}}">{{habits}}</b><span>Windows habits</span></div>
           <div class="stat"><b data-to="{{rules}}">{{rules}}</b><span>rules across layouts and keyboards</span></div>
-          <div class="stat"><b data-to="2">2</b><span>layouts: US and German QWERTZ</span></div>
+          <div class="stat"><b data-to="{{mapped}}">{{mapped}}</b><span>keyboard layouts, from US to Hungarian</span></div>
           <div class="stat"><b data-to="0">0</b><span>keystrokes stored</span></div>
         </div>
         <h2 class="display finale-line" id="finaleLine">Your hands will catch up.<br /><span class="mac-text">Let them.</span></h2>

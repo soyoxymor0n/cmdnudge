@@ -310,7 +310,7 @@ mod tests {
     fn scripted_session_stores_only_library_counters() {
         let store = Store::in_memory().unwrap();
         let lib = library::get();
-        let ctx = Context { layout: Layout::At, keyboard: Keyboard::Apple, family: "chat", exclusion: Exclusion::None };
+        let ctx = Context { layout: Layout::De, keyboard: Keyboard::Apple, family: "chat", exclusion: Exclusion::None };
         let none = Mods::default();
         let ctrl = Mods { ctrl: true, ..none };
         let lcmd = Mods { lcmd: true, ..none };
@@ -318,7 +318,7 @@ mod tests {
         // "Hallo Welt" typed, then Ctrl+C (habit), ⌘V (correct), Shift+A, ⌘K (no library action), Return.
         let session: Vec<(Mods, u16)> = "hallowelt"
             .chars()
-            .filter_map(|ch| keymap::keycode(&ch.to_string(), Layout::At).map(|k| (none, k)))
+            .filter_map(|ch| keymap::keycode(&ch.to_string(), Layout::De).map(|k| (none, k)))
             .chain([(none, 49), (ctrl, 8), (lcmd, 9), (shift, 0), (lcmd, 40), (none, 36)])
             .collect();
         for (mods, key) in session {
@@ -326,7 +326,7 @@ mod tests {
             if !is_key_combo(held, key) {
                 continue;
             }
-            let chord = Chord { mods, key: keymap::label(key, Layout::At).unwrap().into() };
+            let chord = Chord { mods, key: keymap::label(key, Layout::De).unwrap().into() };
             match matcher::evaluate(lib, &ctx, &chord) {
                 Some(Outcome::Habit(r)) => store.record("chat", &r.action, Kind::HabitMiss, "2026-11-06").unwrap(),
                 Some(Outcome::Correct { action }) => store.record("chat", action, Kind::MacCorrect, "2026-11-06").unwrap(),

@@ -29,10 +29,13 @@ export function check(lib) {
     arrivals.set(k, r.id);
     if (r.guard && !lib.destructive.map(loose).includes(loose(r.arrives))) errors.push(`${r.id}: guard on a non-destructive chord`);
   }
-  // Each layout-dependent habit must cover all its layouts (us/de/at unless restricted).
+  // Each layout-dependent habit must name known layouts.
   for (const h of lib.habits) for (const l of h.layouts) if (!lib.layouts.includes(l)) errors.push(`${h.id}: unknown layout ${l}`);
-  const mustGuard = lib.habitRules.filter((r) => r.habit === 'at-sign' && r.keyboard === 'apple');
-  if (mustGuard.length !== 2 || !mustGuard.every((r) => r.guard && r.arrives === 'rcmd+q')) errors.push('the right-⌘Q guard for DE/AT Apple keyboards is missing');
+  const mustGuard = lib.habitRules.find((r) => r.habit === 'at-sign' && r.layout === 'de' && r.keyboard === 'apple');
+  if (!mustGuard?.guard || mustGuard.arrives !== 'rcmd+q') errors.push('the right-⌘Q guard for German Apple keyboards is missing');
+  // Every typing rule that lands on a destructive chord must be guarded, whatever the layout.
+  for (const r of lib.habitRules) if (r.category === 'typing' && !r.guard && lib.destructive.map(loose).includes(loose(r.arrives))) errors.push(`${r.id}: typing habit lands on ${r.arrives} unguarded`);
+  for (const l of lib.layouts) if (l !== 'other' && !lib.keycaps[l]) errors.push(`layout ${l}: no keycaps`);
   return errors;
 }
 
