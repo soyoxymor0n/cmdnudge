@@ -371,7 +371,37 @@ const LAYOUT_NAME = Object.fromEntries(lib.layoutInfo.map((l) => [l.id, l.label]
 const layoutSel = $('#layoutSel');
 layoutSel.innerHTML = lib.layoutInfo.filter((l) => l.id !== 'other').map((l) => `<option value="${l.id}">${l.label}</option>`).join('');
 layoutSel.value = state.layout;
-layoutSel.addEventListener('change', () => { state.layout = layoutSel.value; segs(); chips(); renderMap(); });
+layoutSel.addEventListener('change', () => { state.layout = layoutSel.value; segs(); chips(); renderMap(); layTiles(); });
+
+/* ---------------------------------------------------------------- layouts (#36): one tile per layout, from the library */
+const layGrid = $('#layGrid');
+const htmlEsc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+function layTiles() {
+  if (!layGrid) return;
+  if (!layGrid.childElementCount) {
+    const label = Object.fromEntries(lib.habits.map((h) => [h.id, h.label]));
+    const typing = lib.habitRules.filter((r) => r.category === 'typing' && r.keyboard === 'apple');
+    layGrid.innerHTML = lib.layoutInfo.filter((l) => l.id !== 'other').map((l) => {
+      const rs = typing.filter((r) => r.layout === l.id);
+      const chars = rs.slice(0, 6).map((r) => `<span>${htmlEsc(label[r.habit])}</span>`).join('');
+      const ex = rs[0]
+        ? `<span class="lay-ex">${htmlEsc(label[rs[0].habit])} <kbd>${htmlEsc(formatWin(rs[0].windows))}</kbd> → <kbd>${htmlEsc(formatMac(rs[0].mac[0]))}</kbd></span>`
+        : '<span class="lay-ex">No AltGr here, so it is all shortcuts: <kbd>Ctrl+C</kbd> → <kbd>⌘C</kbd></span>';
+      return `<button type="button" class="lay-tile" data-layout="${l.id}" aria-pressed="false"><b>${htmlEsc(l.label)}</b>` +
+        `<span class="lay-chars" aria-hidden="true">${chars || '<span>⌘</span>'}</span>${ex}</button>`;
+    }).join('') +
+      '<a class="lay-tile lay-other" href="https://github.com/soyoxymor0n/cmdnudge/issues/new?template=layout.yml"><b>Something else?</b>' +
+      '<span class="lay-ex">Shortcuts like Ctrl+C work on any layout, because cmdnudge reads the keys from yours. For your AltGr characters, tell us which layout you use →</span></a>';
+    layGrid.addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-layout]');
+      if (!b) return;
+      layoutSel.value = b.dataset.layout;
+      layoutSel.dispatchEvent(new Event('change'));
+    });
+  }
+  $$('button[data-layout]', layGrid).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.layout === state.layout)));
+}
+layTiles();
 const isMacOS = /Mac/i.test(navigator.userAgentData?.platform || navigator.platform || '');
 
 function segs() {

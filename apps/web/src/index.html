@@ -11,8 +11,10 @@
     2 marquee     - the size of it: so many little habits
     3 statement   - the sting, in the owner's words: the @ that quits Slack, the screenshot you look up again
     3a cost       - the sum of it: looking shortcuts up is context switching; a small calculator
-    3b desk       - the double life: a PC at work, a Mac at home, the same hands; the card answers on the Mac
+    3b desk       - the double life: a PC at work, a Mac at home, the same hands at both keyboards (seen from the chair,
+                    ghost hands on the keys); the card answers on the Mac
     4 trap        - the "aha": the same physical key means AltGr on Windows and right ⌘ on a Mac
+    4b layouts    - belonging: every country types a little differently; your layout is in the list (or one click away)
     5 how         - relief: three plain steps, the misses go down
     6 playground  - agency (the peak): press your own habit, watch the real library answer
     7 map         - thoroughness: every habit, every layout, with its source
@@ -211,16 +213,12 @@
             <div class="duo-glow" aria-hidden="true"><i></i><i></i><i></i></div>
             <figure class="lap lap-win" data-host="win" aria-label="A Windows laptop at work: a document in Word; Ctrl+C and Ctrl+V copy a line, Win+Shift+S cuts out a screenshot">
               <div class="lap-aura" aria-hidden="true"></div>
-              <div class="lap-3d"><div class="lap-lid"><div class="lid-bezel"><div class="lid-screen"><div class="scr"></div><div class="glass"></div></div><i class="cam"></i></div></div></div>
-              <div class="lap-kb" aria-hidden="true"></div>
-              <div class="lap-base" aria-hidden="true"><i class="shut"></i></div>
+              <div class="lap-3d"><div class="lap-deck" aria-hidden="true"></div><div class="deck-edge" aria-hidden="true"></div><div class="lap-lid"><div class="lid-bezel"><div class="lid-screen"><div class="scr"></div><div class="glass"></div></div><i class="cam"></i></div><div class="lid-back" aria-hidden="true"></div></div></div>
               <div class="lap-floor" aria-hidden="true"></div>
             </figure>
             <figure class="lap lap-mac" data-host="mac" aria-label="A MacBook at home: the same document; Ctrl+C does nothing and cmdnudge shows ⌘C in the corner, Win+Shift+S gets ⇧⌘4">
               <div class="lap-aura" aria-hidden="true"></div>
-              <div class="lap-3d"><div class="lap-lid"><div class="lid-bezel"><div class="lid-screen"><div class="scr"></div><div class="glass"></div><i class="notch"></i></div></div></div></div>
-              <div class="lap-kb" aria-hidden="true"></div>
-              <div class="lap-base" aria-hidden="true"><i class="shut"></i><i class="scoop"></i></div>
+              <div class="lap-3d"><div class="lap-deck" aria-hidden="true"></div><div class="deck-edge" aria-hidden="true"></div><div class="lap-lid"><div class="lid-bezel"><div class="lid-screen"><div class="scr"></div><div class="glass"></div><i class="notch"></i></div></div><div class="lid-back" aria-hidden="true"></div></div></div>
               <div class="lap-floor" aria-hidden="true"></div>
             </figure>
           </div>
@@ -265,6 +263,18 @@
             <li data-step="4"><b>Left ⌘Q still quits.</b> When you mean it, you can. The guard is one switch in settings.</li>
           </ol>
         </div>
+      </section>
+
+      <!-- 4b · Layouts: every keyboard we know, from the library (landing.js) ---------- -->
+      <section class="layouts" id="layouts" data-rail="Your keyboard">
+        <header class="sec-head split">
+          <div>
+            <p class="eyebrow">Your keyboard</p>
+            <h2 class="h2">Every person and every country is a little different. <span class="mac-text">cmdnudge embraces all of them.</span></h2>
+          </div>
+          <p class="sec-lede">We support {{mapped}} keyboard layouts. For each one we measured where your fingers go for @, €, braces and the rest on Windows, and where the same character sits on a Mac. Pick yours: the playground and the habit map below follow it.</p>
+        </header>
+        <div class="lay-grid" id="layGrid" role="group" aria-label="Keyboard layouts"></div>
       </section>
 
       <!-- 5 · How it works ------------------------------------------------------- -->

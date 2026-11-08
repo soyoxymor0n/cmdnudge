@@ -107,14 +107,157 @@
       '</div></div>',
   };
 
+  // ------------------------------------------------------------ keyboards and ghost hands (#35)
+  // A key is [id, label, width in units]; every row is 15 units wide. Ids are what PRESSES name.
+  const row = (list) => list.map((k) => (Array.isArray(k) ? k : [k, k.toUpperCase(), 1]));
+  const FNROW = [['esc', 'esc', 1.5]].concat(Array.from({ length: 12 }, (_, i) => ['f' + (i + 1), '', 1]), [['pwr', '', 1.5]]);
+  const LETTERS = [
+    row(['`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', ['bksp', '⌫', 2]]),
+    null, // tab row, per OS
+    null, // caps row
+    null, // shift row
+  ];
+  const KEYBOARDS = {
+    win: [
+      FNROW, LETTERS[0],
+      row([['tab', 'Tab', 1.5], 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', ['bsl', '\\', 1.5]]),
+      row([['caps', 'Caps', 1.75], 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', "'", ['enter', 'Enter', 2.25]]),
+      row([['lshift', 'Shift', 2.25], 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', ['rshift', 'Shift', 2.75]]),
+      [['lctrl', 'Ctrl', 1.25], ['fn', 'Fn', 1], ['win', '⊞', 1.25], ['alt', 'Alt', 1.25], ['space', '', 4.75], ['altgr', 'AltGr', 1.25], ['rctrl', 'Ctrl', 1.25], ['left', '◀', 1], ['ud', '▲▼', 1], ['right', '▶', 1]],
+    ],
+    mac: [
+      FNROW, LETTERS[0],
+      row([['tab', '⇥', 1.5], 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', ['bsl', '\\', 1.5]]),
+      row([['caps', '⇪', 1.75], 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', "'", ['enter', '↩', 2.25]]),
+      row([['lshift', '⇧', 2.25], 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', ['rshift', '⇧', 2.75]]),
+      [['fn', 'fn', 1], ['lctrl', '⌃', 1], ['lopt', '⌥', 1.25], ['lcmd', '⌘', 1.5], ['space', '', 4.5], ['rcmd', '⌘', 1.5], ['ropt', '⌥', 1.25], ['left', '◀', 1], ['ud', '▲▼', 1], ['right', '▶', 1]],
+    ],
+  };
+  const ROW_H = [0.6, 1, 1, 1, 1, 1]; // 5.6 units in all
+  const KB_H = 5.6;
+
+  // What the hands press, and when (the same moments as the chord chips below each laptop).
+  // On the Mac, Win+Shift+S lands on ⌥ (the key where Win sits on a PC).
+  const PRESSES = {
+    win: [[2.6, 3.7, ['lctrl', 'c']], [4.2, 5.2, ['lctrl', 'v']], [14.5, 15.7, ['win', 'lshift', 's']]],
+    mac: [
+      [8.1, 9.3, ['lctrl', 'c'], 1], [10.3, 11.2, ['lcmd', 'c']], [11.6, 12.5, ['lcmd', 'v']],
+      [16.5, 17.7, ['lopt', 'lshift', 's'], 1], [18.3, 19.3, ['lshift', 'lcmd', '4']],
+      [23.4, 24.1, ['lcmd', 'c']], [24.4, 25.1, ['lcmd', 'v']],
+    ],
+  };
+  const FINGER = { lctrl: 'lp', lshift: 'lp', win: 'lt', alt: 'lt', lcmd: 'lt', lopt: 'lt', c: 'lm', v: 'li', s: 'lr', 4: 'li' };
+  // Resting fingers: on the home row, thumbs on the space bar.
+  const HOME = { lp: 'a', lr: 's', lm: 'd', li: 'f', rp: ';', rr: 'l', rm: 'k', ri: 'j' };
+  const WIDTH = { p: 0.5, r: 0.58, m: 0.62, i: 0.6, t: 0.72 };
+
+  function buildKeyboard(host) {
+    const keys = {};
+    let html = '', y = 0;
+    KEYBOARDS[host].forEach((rowKeys, ri) => {
+      let x = 0;
+      const h = ROW_H[ri];
+      for (const [id, label, w] of rowKeys) {
+        keys[id] = { x: x + w / 2, y: y + h / 2, x0: x, x1: x + w };
+        const g = 0.07;
+        html += '<i class="k' + (label.length > 1 ? ' s' : '') + '" data-k="' + id + '" style="left:' + ((x + g) / 15 * 100).toFixed(3) + '%;top:' + ((y + g) / KB_H * 100).toFixed(3) +
+          '%;width:' + ((w - 2 * g) / 15 * 100).toFixed(3) + '%;height:' + ((h - 2 * g) / KB_H * 100).toFixed(3) + '%">' + esc(label) + '</i>';
+        x += w;
+      }
+      y += h;
+    });
+    return { keys, html };
+  }
+
+  // One hand = palm, wrist and five fingers in one faint layer; a soft shadow under it (CSS) makes
+  // it read on a black keyboard and on a silver one alike. The wrists fade out towards you.
+  function handShapes(side) {
+    const f = ['p', 'r', 'm', 'i', 't'].map((n) => '<line data-f="' + side + n + '" stroke-width="' + WIDTH[n] + '" stroke-linecap="round"/>').join('');
+    return '<ellipse data-palm="' + side + '"/><line data-wrist="' + side + '" stroke-width="2.3" stroke-linecap="round"/>' + f;
+  }
+  const ghostSvg = (host) => '<svg class="ghost" viewBox="0 0 15 ' + KB_H + '" preserveAspectRatio="none">' +
+    '<defs><linearGradient id="gf-' + host + '" gradientUnits="userSpaceOnUse" x1="0" y1="6.6" x2="0" y2="9.6"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>' +
+    '<mask id="gm-' + host + '" maskUnits="userSpaceOnUse" x="-5" y="-5" width="25" height="20"><rect x="-5" y="-5" width="25" height="20" fill="url(#gf-' + host + ')"/></mask></defs>' +
+    '<g class="skin" mask="url(#gm-' + host + ')">' + handShapes('l') + handShapes('r') + '</g></svg>';
+
+  function setupHands(l) {
+    const deck = l.el.querySelector('.lap-deck');
+    const kb = buildKeyboard(l.host);
+    deck.innerHTML = '<div class="kb">' + kb.html + ghostSvg(l.host) + '</div><i class="tpad"></i>';
+    const K = kb.keys;
+    const space = K.space;
+    const rest = {};
+    for (const [f, k] of Object.entries(HOME)) rest[f] = { x: K[k].x, y: K[k].y };
+    rest.lt = { x: space.x0 + 0.9, y: space.y };
+    rest.rt = { x: space.x1 - 0.9, y: space.y };
+    const els = { keys: {}, f: {}, palm: {}, wrist: {} };
+    deck.querySelectorAll('.k').forEach((n) => { els.keys[n.dataset.k] = n; });
+    deck.querySelectorAll('[data-f]').forEach((n) => { (els.f[n.dataset.f] ||= []).push(n); });
+    deck.querySelectorAll('[data-palm]').forEach((n) => { (els.palm[n.dataset.palm] ||= []).push(n); });
+    deck.querySelectorAll('[data-wrist]').forEach((n) => { (els.wrist[n.dataset.wrist] ||= []).push(n); });
+    l.hands = { K, rest, els, presses: PRESSES[l.host], down: {} };
+  }
+
+  const reach = (a, b, t) => smooth(a - 0.28, a - 0.02, t) * (1 - smooth(b - 0.05, b + 0.3, t));
+  const set = (list, attrs) => { for (const n of list) for (const k in attrs) n.setAttribute(k, attrs[k]); };
+  const f2 = (v) => v.toFixed(2);
+
+  function renderHands(l, t) {
+    const H = l.hands;
+    if (!H) return;
+    // Which keys are down, and how far each finger has gone towards its key.
+    const down = {};
+    const pull = {};
+    for (const [a, b, list, miss] of H.presses) {
+      const r = reach(a, b, t);
+      for (const k of list) {
+        if (t >= a && t < b) down[k] = miss ? 'miss' : 'ok';
+        const f = FINGER[k];
+        if (!f || r <= 0) continue;
+        const to = H.K[k], from = H.rest[f];
+        if (!pull[f] || pull[f].r < r) pull[f] = { r, dx: (to.x - from.x) * r, dy: (to.y - from.y) * r };
+      }
+    }
+    for (const id in H.els.keys) {
+      const st = down[id] || '';
+      if (H.down[id] !== st) {
+        H.down[id] = st;
+        H.els.keys[id].classList.toggle('dn', !!st);
+        H.els.keys[id].classList.toggle('miss', st === 'miss');
+      }
+    }
+    for (const side of ['l', 'r']) {
+      // The hand follows its fingers about halfway.
+      let ox = 0, oy = 0, n = 0;
+      for (const f in pull) if (f[0] === side) { ox += pull[f].dx; oy += pull[f].dy; n++; }
+      if (n) { ox = (ox / n) * 0.55; oy = (oy / n) * 0.55; }
+      const sgn = side === 'l' ? 1 : -1; // towards the middle of the keyboard
+      const cx = (H.rest[side + 'p'].x + H.rest[side + 'i'].x) / 2 + ox;
+      const cy = H.rest[side + 'm'].y + 3.4 + oy;
+      set(H.els.palm[side], { cx: f2(cx), cy: f2(cy), rx: '1.7', ry: '1.15' });
+      set(H.els.wrist[side], { x1: f2(cx), y1: f2(cy + 0.5), x2: f2(cx + 0.45 * sgn), y2: f2(cy + 3.4) });
+      for (const n2 of ['p', 'r', 'm', 'i', 't']) {
+        const f = side + n2, base = H.rest[f], p = pull[f];
+        const tx = base.x + (p ? p.dx : ox * 0.85), ty = base.y + (p ? p.dy : oy * 0.85);
+        // Knuckles sit on the palm's top edge; the thumb comes from its inner side.
+        const kx = n2 === 't' ? cx + 1.55 * sgn : cx + (base.x - cx + ox) * 0.6;
+        const ky = n2 === 't' ? cy - 0.55 : cy - 1.05;
+        set(H.els.f[f], { x1: f2(kx), y1: f2(ky), x2: f2(tx), y2: f2(ty) });
+      }
+    }
+  }
+
   // ------------------------------------------------------------ build
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
   const stage = root.querySelector('#duoStage');
   const laps = [...root.querySelectorAll('.lap')].map((el, i) => {
     const host = el.dataset.host;
     const scr = el.querySelector('.scr');
     scr.innerHTML = SCREENS[host];
     el.insertAdjacentHTML('beforeend', HANDS[host]);
-    return { el, host, scr, screen: el.querySelector('.lid-screen'), lead: i === 0 ? 0 : 0.14, p: -1 };
+    const l = { el, host, scr, screen: el.querySelector('.lid-screen'), lead: i === 0 ? 0 : 0.14, p: -1 };
+    setupHands(l);
+    return l;
   });
 
   const parsePairs = (s, sep, kv) => s.split(sep).filter(Boolean).map((x) => { const k = x.indexOf(kv); return [+x.slice(0, k), x.slice(k + 1)]; }).sort((a, b) => a[0] - b[0]);
@@ -149,7 +292,6 @@
   }
 
   // ------------------------------------------------------------ step chips
-  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
   const stepsEl = root.querySelector('#duoSteps');
   const capEl = root.querySelector('#duoCap');
   stepsEl.innerHTML = STEPS.map((s, i) =>
@@ -182,7 +324,6 @@
     s.setProperty('--p', p.toFixed(3));
     // The keyboard's light spills out while the gap is opening, then settles low.
     s.setProperty('--kb', (smooth(0.06, 0.42, p) * (1 - 0.62 * smooth(0.55, 1, p))).toFixed(3));
-    l.el.classList.toggle('is-shut', p < 0.004);
     l.el.classList.toggle('is-on', p > 0.88);
   }
 
@@ -218,6 +359,7 @@
     const tt = RM.matches ? (held >= 0 ? held : STILL) : t;
     renderScene(tt);
     renderSteps(tt);
+    for (const l of laps) renderHands(l, open ? tt : 0);
     if (inView && !RM.matches) raf = requestAnimationFrame(frame);
   }
   const kick = () => { if (!raf) raf = requestAnimationFrame(frame); };

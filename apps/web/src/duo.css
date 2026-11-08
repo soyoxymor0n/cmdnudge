@@ -1,7 +1,8 @@
 /* cmdnudge.com, "Two keyboards" (duo.js). The laptop pair and its scroll-driven lids come
    from devdash.eu/welcome (dev-dashboard/landing/duo.css), recoloured: the PC glows in
    --hand blue, the Mac in --mac orange. The screens are 1000 x 625 drawings scaled to the
-   glass (--sc); the hands strip under each laptop shows the keys being pressed. */
+   glass (--sc). Each laptop is seen from the chair (#35): the deck is a real 3D plane under
+   the lid, its keys light up as they are pressed, and two ghost hands reach for them. */
 
 .duo { position: relative; height: 250vh; }
 .duo-pin {
@@ -14,8 +15,10 @@
 
 .duo-stage {
   --q: 0;
+  /* Lid about 0.68 w tall, the deck below it about 0.42 w on screen. */
+  --w: min(520px, 36vw, calc((100svh - 330px) / 1.12));
   position: relative; width: 100%; max-width: 1240px;
-  display: flex; justify-content: center; align-items: flex-end; gap: clamp(22px, 4.5vw, 72px);
+  display: flex; justify-content: center; align-items: flex-end; gap: calc(var(--w) * 0.32);
   margin-top: clamp(26px, 5vh, 56px);
 }
 /* The room light: grows with the lids. */
@@ -27,7 +30,6 @@
 
 /* ---------- one laptop ---------- */
 .lap {
-  --w: min(520px, 40vw, calc((100svh - 330px) / 0.72));
   --bh: calc(var(--w) * 0.03);
   --a: -90deg; --p: 0; --kb: 0;
   position: relative; width: var(--w); margin: 0; flex: none;
@@ -40,10 +42,50 @@
 .lap-win .lap-aura { background: radial-gradient(closest-side at 50% 52%, rgba(80, 160, 255, 0.5), rgba(60, 110, 255, 0.16) 52%, transparent 78%); }
 .lap-mac .lap-aura { background: radial-gradient(closest-side at 50% 52%, rgba(182, 242, 58, 0.36), rgba(167, 139, 250, 0.14) 52%, transparent 78%); }
 
-.lap-3d { position: relative; z-index: 2; perspective: 2600px; perspective-origin: 50% 100%; }
-.lap-lid { transform-origin: 50% 100%; transform: rotateX(var(--a)); will-change: transform; }
-.lap.is-shut .lap-lid { visibility: hidden; }
-.lid-bezel { position: relative; background: #040507; }
+/* The eye sits high above the hinge and a little in front: the view of someone at the desk. */
+.lap-3d { position: relative; z-index: 2; perspective: calc(var(--w) * 5); perspective-origin: 50% calc(var(--w) * -1.65); }
+.lap-lid { position: relative; transform-origin: 50% 100%; transform: rotateX(var(--a)); transform-style: preserve-3d; will-change: transform; }
+.lid-bezel { position: relative; background: #040507; backface-visibility: hidden; }
+/* The closed lid shows its back. */
+.lid-back { position: absolute; inset: 0; transform: rotateY(180deg); backface-visibility: hidden; border-radius: 12px 12px 3px 3px; }
+.lap-win .lid-back { background: linear-gradient(160deg, #474d58, #262a31 60%, #1b1e23); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1); }
+.lap-mac .lid-back { border-radius: 16px 16px 4px 4px; background: linear-gradient(160deg, #eef0f3, #c9ccd2 60%, #b2b6bd); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6); }
+
+/* ---------- the deck: a horizontal plane hinged under the lid ---------- */
+.lap-deck {
+  position: absolute; left: -2%; right: -2%; top: 100%; height: calc(var(--w) * 0.7);
+  transform-origin: 50% 0; transform: rotateX(90deg); transform-style: preserve-3d;
+  border-radius: 3px 3px calc(var(--w) * 0.035) calc(var(--w) * 0.035);
+}
+.lap-win .lap-deck { background: linear-gradient(180deg, #30353d, #272b32 60%, #2c3038); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07); }
+.lap-mac .lap-deck { background: linear-gradient(180deg, #d4d7dc, #e2e4e8 60%, #d9dce0); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7); }
+.deck-edge {
+  position: absolute; left: -2%; right: -2%; top: 100%; height: calc(var(--w) * 0.024);
+  transform: translateZ(calc(var(--w) * 0.7)); border-radius: 0 0 calc(var(--w) * 0.03) calc(var(--w) * 0.03);
+}
+.lap-win .deck-edge { background: linear-gradient(#41464f, #16181c); }
+.lap-mac .deck-edge { background: linear-gradient(#b9bdc3, #74787f); }
+.kb { position: absolute; left: 7%; right: 7%; top: 4.5%; aspect-ratio: 15 / 5.6; transform-style: preserve-3d; }
+.lap-mac .kb::before { content: ''; position: absolute; inset: -1.2% -0.8%; border-radius: 4px; background: rgba(0, 0, 0, 0.16); }
+.k {
+  position: absolute; display: grid; place-items: center; overflow: hidden; border-radius: 12% / 16%;
+  font: 500 calc(var(--w) * 0.0155) / 1 var(--body); white-space: nowrap;
+  transition: background 0.12s, color 0.12s, box-shadow 0.12s, transform 0.12s;
+}
+.k.s { font-size: calc(var(--w) * 0.012); }
+.lap-win .k { --dn: #4f9bff; background: #14161a; color: #8f98a7; box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.06); }
+.lap-mac .k { --dn: var(--mac); background: #18191c; color: #c3c7ce; box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.08); }
+.k.dn { background: var(--dn); color: #0b0d12; box-shadow: 0 0 calc(var(--w) * 0.03) var(--dn); transform: scale(0.94); }
+.lap-mac .k.dn.miss { --dn: var(--hand); color: #fff; }
+.tpad { position: absolute; left: 31%; width: 38%; top: 58%; height: 31%; border-radius: calc(var(--w) * 0.014); }
+.lap-win .tpad { background: #2a2e35; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
+.lap-mac .tpad { background: #cfd2d7; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08); }
+/* Ghost hands: just enough to see where the fingers go. Lifted off the keys a little. */
+.ghost { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; transform: translateZ(calc(var(--w) * 0.03)); pointer-events: none; opacity: 0; transition: opacity 1.2s var(--ease); }
+.lap.is-on .ghost { opacity: 1; }
+.lap-win .ghost .skin { opacity: 0.17; fill: #ffe9dc; stroke: #ffe9dc; }
+.lap-mac .ghost .skin { opacity: 0.26; fill: #c79c7e; stroke: #c79c7e; }
+.lap.is-on .ghost { filter: drop-shadow(0 calc(var(--w) * 0.012) calc(var(--w) * 0.01) rgba(0, 0, 0, 0.32)); }
 .lap-win .lid-bezel { padding: 3.1% 2.6% 5.4%; border-radius: 12px 12px 3px 3px; box-shadow: 0 0 0 2px #2c313a, 0 0 0 3px #15181d, 0 30px 60px -30px rgba(0, 0, 0, 0.9); }
 .lap-mac .lid-bezel { padding: 1.7% 1.7% 2.9%; border-radius: 16px 16px 4px 4px; box-shadow: 0 0 0 2px #b7bbc2, 0 0 0 3px #7d8189, 0 30px 60px -30px rgba(0, 0, 0, 0.9); }
 /* Keyboard light catching the lower bezel. */
@@ -70,24 +112,7 @@
 }
 .lap.is-on .scr { opacity: 1; filter: none; }
 
-/* The keyboard's light, rising out of the gap. */
-.lap-kb {
-  position: absolute; z-index: 3; left: -2%; right: -2%; bottom: var(--bh); height: calc(var(--w) * 0.34);
-  pointer-events: none; opacity: var(--kb); mix-blend-mode: screen;
-  background: radial-gradient(50% 100% at 50% 100%, rgba(190, 215, 255, 0.55), rgba(120, 165, 255, 0.16) 46%, transparent 76%);
-}
-.lap-mac .lap-kb { background: radial-gradient(50% 100% at 50% 100%, rgba(255, 240, 222, 0.55), rgba(255, 200, 170, 0.15) 46%, transparent 76%); }
-.lap-kb::after { content: ''; position: absolute; left: 12%; right: 12%; bottom: 0; height: 2px; border-radius: 2px; background: rgba(235, 242, 255, 0.9); filter: blur(1.5px); }
-
-.lap-base { position: relative; z-index: 4; height: var(--bh); margin: 0 -5.5%; border-radius: 0 0 50% 50% / 0 0 100% 100%; }
-.lap-win .lap-base { margin: 0 -4.5%; background: linear-gradient(180deg, #6a717d 0%, #3b414b 22%, #262a31 70%, #15181c 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2); }
-.lap-mac .lap-base { background: linear-gradient(180deg, #f6f7f9 0%, #d3d6db 20%, #a4a8af 70%, #6c7078 100%); box-shadow: inset 0 1px 0 #fff; }
-.lap-base .scoop { position: absolute; left: 50%; top: 0; width: 12%; height: 46%; transform: translateX(-50%); border-radius: 0 0 40% 40% / 0 0 100% 100%; background: linear-gradient(#8f939a, #c4c7cc); }
-/* The closed lid's edge, sitting on the base; it goes as the lid lifts. */
-.lap-base .shut { position: absolute; left: 5%; right: 5%; bottom: 100%; height: calc(var(--w) * 0.011); border-radius: 3px 3px 0 0; opacity: max(0, calc(1 - var(--p) * 16)); }
-.lap-win .lap-base .shut { left: 4.1%; right: 4.1%; background: linear-gradient(#4a505b, #2a2e35); }
-.lap-mac .lap-base .shut { background: linear-gradient(#d9dbe0, #9fa3aa); }
-.lap-floor { position: absolute; z-index: 1; left: -16%; right: -16%; top: 100%; height: calc(var(--w) * 0.16); pointer-events: none;
+.lap-floor { position: absolute; z-index: 1; left: -22%; right: -22%; top: calc(100% + var(--w) * 0.41); height: calc(var(--w) * 0.16); pointer-events: none;
   background: radial-gradient(48% 30% at 50% 0%, rgba(0, 0, 0, 0.85), transparent 80%); }
 .lap-floor::after { content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity 1.8s var(--ease); }
 .lap.is-on .lap-floor::after { opacity: 1; }
@@ -112,8 +137,8 @@
 @media (max-width: 900px) {
   .duo { height: auto; }
   .duo-pin { position: relative; height: auto; padding: 100px var(--gutter) 40px; }
-  .duo-stage { gap: 12px; margin-top: 34px; }
-  .lap { --w: calc((100vw - 2 * var(--gutter) - 12px) / 2); }
+  .duo-stage { margin-top: 34px; }
+  .duo-stage { --w: calc((100vw - 2 * var(--gutter)) / 2.6); }
   .lap-mac .lid-bezel, .lap-win .lid-bezel { border-radius: 8px 8px 2px 2px; }
   .duo-steps { display: flex; overflow-x: auto; scrollbar-width: none; gap: 14px; }
   .duo-steps::-webkit-scrollbar { display: none; }
@@ -260,7 +285,7 @@
 .thumb.on { opacity: 1; transform: none; }
 
 /* ---------- the hands: which keys are pressed, under each laptop ---------- */
-.hands { position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + clamp(18px, 3vh, 34px)); display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.hands { position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + var(--w) * 0.44 + clamp(8px, 2vh, 20px)); display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .hands-label { font: 600 11px/1 var(--display); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
 .lap-win .hands-label b { color: var(--hand); font-weight: 700; }
 .lap-mac .hands-label b { color: var(--mac); font-weight: 700; }
@@ -274,10 +299,10 @@
 .chord.on kbd { animation: press 0.5s var(--ease); }
 @keyframes press { 0% { transform: translateY(0); } 25% { transform: translateY(2px); box-shadow: 0 0 0 var(--line-2); } 100% { transform: none; } }
 .chord.miss kbd { color: var(--hand); }
-.duo-stage { margin-bottom: clamp(70px, 10vh, 96px); }
+.duo-stage { margin-bottom: calc(var(--w) * 0.44 + clamp(70px, 10vh, 96px)); }
 @media (max-width: 900px) {
   .chord kbd { min-width: 24px; height: 26px; padding: 0 6px; font-size: 11px; border-radius: 6px; }
   .chords { height: 28px; }
   .hands-label { font-size: 9.5px; letter-spacing: 0.08em; }
-  .duo-stage { margin-bottom: 70px; }
+  .duo-stage { margin-bottom: calc(var(--w) * 0.44 + 70px); }
 }
