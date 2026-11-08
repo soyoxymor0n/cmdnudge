@@ -12,6 +12,7 @@ use serde::Serialize;
 use std::collections::VecDeque;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::{Mutex, OnceLock, RwLock};
+use std::time::{Duration, Instant};
 
 #[derive(Debug, PartialEq)]
 pub enum Decision {
@@ -51,7 +52,20 @@ pub struct KeepOffer {
     pub app_name: String,
     pub shortcut: String,
     pub label: String,
+    /// #31: the evidence says this use is deliberate; the hint asks "Keep it?" right away.
+    pub ask: bool,
 }
+
+/// #31: a hinted Windows shortcut waiting to see whether the Mac way follows within FOLLOW.
+struct Pending {
+    habit: String,
+    action: String,
+    bundle_id: String,
+    at: Instant,
+}
+
+/// The Mac way within this time after a hint means the Windows shortcut was a slip, not a choice.
+const FOLLOW: Duration = Duration::from_secs(10);
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -84,7 +98,7 @@ enum Job {
         /// Ask Accessibility whether the focus is in an editor's built-in terminal first (#30).
         check_terminal: bool,
     },
-    Correct { action: String, family: String },
+    Correct { action: String, family: String, bundle_id: String },
 }
 
 pub struct Engine {
@@ -94,6 +108,7 @@ pub struct Engine {
     pub recent: Mutex<VecDeque<RecentHint>>,
     pub key_check: Mutex<Option<KeyCheck>>,
     jobs: Mutex<Option<Sender<Job>>>,
+    pending: Mutex<Vec<Pending>>,
     toast: OnceLock<Box<dyn Fn(ToastSpec) + Send + Sync>>,
     terminal_probe: OnceLock<Box<dyn Fn() -> bool + Send + Sync>>,
     changed: OnceLock<Box<dyn Fn() + Send + Sync>>,
@@ -116,6 +131,7 @@ impl Engine {
             recent: Mutex::new(VecDeque::new()),
             key_check: Mutex::new(None),
             jobs: Mutex::new(None),
+            pending: Mutex::new(Vec::new()),
             toast: OnceLock::new(),
             terminal_probe: OnceLock::new(),
             changed: OnceLock::new(),
@@ -289,7 +305,11 @@ impl Engine {
                     translated: matches!(decision, Decision::Replace(_)),
                     check_terminal,
                 }),
-                Some(Outcome::Correct { action }) => Some(Job::Correct { action: action.to_string(), family: family.id.clone() }),
+                Some(Outcome::Correct { action }) => Some(Job::Correct {
+                    action: action.to_string(),
+                    family: family.id.clone(),
+                    bundle_id: bundle_id.to_string(),
+                }),
                 None => None,
             };
             if let (Some(job), Some(tx)) = (job, self.jobs.lock().unwrap().as_ref()) {
@@ -302,8 +322,10 @@ impl Engine {
     fn handle(&self, job: Job) {
         let lib = library::get();
         let day = store::today();
+        self.settle(Instant::now(), &day);
         match job {
-            Job::Correct { action, family } => {
+            Job::Correct { action, family, bundle_id } => {
+                self.followed(&action, &bundle_id);
                 let _ = self.store.lock().unwrap().record(&family, &action, Kind::MacCorrect, &day);
             }
             Job::Habit { rule_id, family, bundle_id, app, blocked, translated, check_terminal } => {
@@ -329,6 +351,7 @@ impl Engine {
                         app_name: app.clone(),
                         shortcut: spec.from.clone(),
                         label: lib.action(&rule.action).map(|a| a.label.clone()).unwrap_or_default(),
+                        ask: false,
                     });
                 }
                 {
@@ -343,6 +366,20 @@ impl Engine {
                     recent.truncate(5);
                 }
                 let muted = self.settings.read().unwrap().muted_families.iter().any(|f| *f == family);
+                if let Some(offer) = spec.keep.as_mut() {
+                    // #31: the question rides on this hint, never on a toast of its own.
+                    if !muted && self.store.lock().unwrap().should_ask(&offer.habit, &offer.bundle_id).unwrap_or(false) {
+                        offer.ask = true;
+                        spec.detail = format!("{} · looks deliberate. Keep it?", offer.label);
+                        spec.duration_ms += 5000;
+                    }
+                    self.pending.lock().unwrap().push(Pending {
+                        habit: offer.habit.clone(),
+                        action: rule.action.clone(),
+                        bundle_id: offer.bundle_id.clone(),
+                        at: Instant::now(),
+                    });
+                }
                 if !muted || spec.style == ToastStyle::Guard {
                     if let Some(show) = self.toast.get() {
                         show(spec);
@@ -351,6 +388,28 @@ impl Engine {
             }
         }
         self.notify();
+    }
+
+    /// #31: hinted uses older than FOLLOW without the Mac way count as deliberate.
+    fn settle(&self, now: Instant, day: &str) {
+        let done: Vec<Pending> = {
+            let mut p = self.pending.lock().unwrap();
+            let (done, keep) = p.drain(..).partition(|p| now.duration_since(p.at) >= FOLLOW);
+            *p = keep;
+            done
+        };
+        if done.is_empty() {
+            return;
+        }
+        let store = self.store.lock().unwrap();
+        for p in done {
+            let _ = store.record_deliberate(&p.habit, &p.bundle_id, day);
+        }
+    }
+
+    /// #31: the Mac way came after the hint: those uses were slips.
+    fn followed(&self, action: &str, bundle_id: &str) {
+        self.pending.lock().unwrap().retain(|p| !(p.action == action && p.bundle_id == bundle_id));
     }
 
     pub fn notify(&self) {
@@ -477,7 +536,7 @@ mod tests {
     }
 
     fn offer(habit: &str, bundle: &str) -> KeepOffer {
-        KeepOffer { habit: habit.into(), bundle_id: bundle.into(), app_name: "Code".into(), shortcut: "Ctrl+C".into(), label: "Copy".into() }
+        KeepOffer { habit: habit.into(), bundle_id: bundle.into(), app_name: "Code".into(), shortcut: "Ctrl+C".into(), label: "Copy".into(), ask: false }
     }
 
     fn translate(e: &Engine) {
@@ -556,6 +615,68 @@ mod tests {
         translate(e);
         let c = Chord { mods: CTRL, key: "c".into() };
         assert_eq!(e.on_key(&c, "com.microsoft.VSCode", "Code", false), Decision::Replace(Pattern::parse("cmd+c").unwrap()));
+    }
+
+    /// Waits until the worker has handled everything sent so far.
+    fn drain(e: &Engine) {
+        std::thread::sleep(std::time::Duration::from_millis(150));
+        let _ = e;
+    }
+
+    fn age_pending(e: &Engine) {
+        for p in e.pending.lock().unwrap().iter_mut() {
+            p.at -= FOLLOW;
+        }
+    }
+
+    #[test]
+    fn a_slip_followed_by_the_mac_way_is_not_evidence() {
+        let e = engine();
+        e.start_worker();
+        let c = Chord { mods: CTRL, key: "c".into() };
+        e.on_key(&c, "com.google.Chrome", "Chrome", false);
+        e.on_key(&Chord { mods: LCMD, key: "c".into() }, "com.google.Chrome", "Chrome", false);
+        drain(e);
+        assert!(e.pending.lock().unwrap().is_empty());
+        e.settle(Instant::now(), "2026-11-07");
+        assert!(e.store.lock().unwrap().evidence().unwrap().is_empty());
+    }
+
+    #[test]
+    fn the_mac_way_in_another_app_does_not_cancel_the_evidence() {
+        let e = engine();
+        e.start_worker();
+        e.on_key(&Chord { mods: CTRL, key: "c".into() }, "com.google.Chrome", "Chrome", false);
+        e.on_key(&Chord { mods: LCMD, key: "c".into() }, "com.apple.Notes", "Notes", false);
+        drain(e);
+        age_pending(e);
+        e.settle(Instant::now(), "2026-11-07");
+        let ev = e.store.lock().unwrap().evidence().unwrap();
+        assert_eq!((ev.len(), ev[0].bundle_id.as_str(), ev[0].uses), (1, "com.google.Chrome", 1));
+    }
+
+    #[test]
+    fn deliberate_use_puts_the_question_into_the_hint() {
+        let e = engine();
+        let shown: &'static Mutex<Vec<ToastSpec>> = Box::leak(Box::new(Mutex::new(vec![])));
+        e.on_toast(move |t| shown.lock().unwrap().push(t));
+        {
+            let s = e.store.lock().unwrap();
+            for day in ["2026-11-05", "2026-11-05", "2026-11-06", "2026-11-06", "2026-11-06"] {
+                s.record_deliberate("copy", "com.google.Chrome", day).unwrap();
+            }
+        }
+        e.start_worker();
+        let c = Chord { mods: CTRL, key: "c".into() };
+        e.on_key(&c, "com.google.Chrome", "Chrome", false);
+        e.on_key(&c, "com.google.Chrome", "Chrome", false);
+        drain(e);
+        let shown = shown.lock().unwrap();
+        assert_eq!(shown.len(), 2, "no extra toast");
+        let k = shown[0].keep.as_ref().unwrap();
+        assert!(k.ask);
+        assert_eq!(shown[0].detail, "Copy · looks deliberate. Keep it?");
+        assert!(!shown[1].keep.as_ref().unwrap().ask, "asked once, then again after 20 more uses");
     }
 
     #[test]

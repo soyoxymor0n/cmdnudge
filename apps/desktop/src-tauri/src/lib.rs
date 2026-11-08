@@ -169,6 +169,7 @@ struct RawRows {
     counters: Vec<store::CounterRow>,
     daily: Vec<store::DailyRow>,
     columns: Vec<(String, Vec<String>)>,
+    evidence: Vec<store::EvidenceRow>,
     device_id: String,
 }
 
@@ -179,6 +180,7 @@ fn get_raw_rows() -> Result<RawRows, String> {
         counters: store.counters().map_err(|x| x.to_string())?,
         daily: store.daily().map_err(|x| x.to_string())?,
         columns: store.columns().map_err(|x| x.to_string())?,
+        evidence: store.evidence().map_err(|x| x.to_string())?,
         device_id: store.device_id.clone(),
     })
 }

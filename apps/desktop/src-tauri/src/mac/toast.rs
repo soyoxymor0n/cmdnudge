@@ -1,6 +1,8 @@
 //! The toast: a native, non-activating NSPanel. It never becomes key and never activates
 //! cmdnudge, so the shortcut you try next goes to your app (invariant 4). It ignores the mouse
-//! unless the pointer is on it: then a habit hint holds still and offers "Keep" (#29).
+//! unless the pointer is on it: then a habit hint holds still and offers "Keep" (#29). When the
+//! evidence says a shortcut is used on purpose, the hint asks right away (#31): same toast, a
+//! question in the detail line and the buttons under it.
 
 use crate::engine::{KeepOffer, ToastSpec, ToastStyle};
 use objc2::rc::Retained;
@@ -26,6 +28,7 @@ struct Toast {
     detail: Retained<NSTextField>,
     keep_here: Retained<ToastButton>,
     keep_all: Retained<ToastButton>,
+    not_now: Retained<ToastButton>,
     _target: Retained<KeepTarget>,
     shown: Option<ToastSpec>,
     /// The Keep buttons are showing (the pointer reached a habit hint).
@@ -62,6 +65,12 @@ define_class!(
         #[unsafe(method(keepEverywhere:))]
         fn keep_everywhere(&self, _sender: Option<&AnyObject>) {
             kept_main(true);
+        }
+
+        #[unsafe(method(notNow:))]
+        fn not_now(&self, _sender: Option<&AnyObject>) {
+            HOVERED.store(false, Ordering::SeqCst);
+            hide_after(0);
         }
     }
 );
@@ -259,8 +268,10 @@ fn build(mtm: MainThreadMarker) -> Toast {
     let keep_here = button(mtm, "Keep here", &target, sel!(keepHere:));
     let keep_all = button(mtm, "Keep everywhere", &target, sel!(keepEverywhere:));
     effect.addSubview(&keep_here);
+    let not_now = button(mtm, "Not now", &target, sel!(notNow:));
     effect.addSubview(&keep_all);
-    Toast { panel, from, arrow, to, detail, keep_here, keep_all, _target: target, shown: None, offering: false }
+    effect.addSubview(&not_now);
+    Toast { panel, from, arrow, to, detail, keep_here, keep_all, not_now, _target: target, shown: None, offering: false }
 }
 
 fn show_main(spec: ToastSpec) {
@@ -274,7 +285,7 @@ fn show_main(spec: ToastSpec) {
             t.panel.setAlphaValue(1.0);
             return;
         }
-        t.offering = false;
+        t.offering = spec.keep.as_ref().is_some_and(|k| k.ask);
 
         let quiet = spec.style == ToastStyle::Quiet;
         let guard = spec.style == ToastStyle::Guard;
@@ -316,12 +327,16 @@ fn show_main(spec: ToastSpec) {
 fn layout(t: &mut Toast) {
     let Some(mtm) = MainThreadMarker::new() else { return };
     let offering = t.offering;
-    t.detail.setHidden(offering);
+    // #31: a question keeps its detail line, with the buttons (and "Not now") under it.
+    let asking = offering && t.shown.as_ref().and_then(|s| s.keep.as_ref()).is_some_and(|k| k.ask);
+    t.detail.setHidden(offering && !asking);
     t.keep_here.setHidden(!offering);
     t.keep_all.setHidden(!offering);
+    t.not_now.setHidden(!asking);
     if offering {
         t.keep_here.sizeToFit();
         t.keep_all.sizeToFit();
+        t.not_now.sizeToFit();
     }
     {
         // Layout: row 1 = from → to (baseline-ish aligned), row 2 = detail.
@@ -329,11 +344,18 @@ fn layout(t: &mut Toast) {
         let fs = t.from.frame().size;
         let as_ = t.arrow.frame().size;
         let ts = t.to.frame().size;
-        let ds = if offering {
-            let (a, b) = (t.keep_here.frame().size, t.keep_all.frame().size);
-            NSSize::new(a.width + 6.0 + b.width, a.height.max(b.height))
+        let buttons = {
+            let (a, b, c) = (t.keep_here.frame().size, t.keep_all.frame().size, t.not_now.frame().size);
+            let w = a.width + 6.0 + b.width + if asking { 6.0 + c.width } else { 0.0 };
+            NSSize::new(w, a.height.max(b.height))
+        };
+        let dsz = t.detail.frame().size;
+        let ds = if asking {
+            NSSize::new(dsz.width.max(buttons.width), dsz.height + 6.0 + buttons.height)
+        } else if offering {
+            buttons
         } else {
-            t.detail.frame().size
+            dsz
         };
         let row1_h = fs.height.max(ts.height);
         let row1_w = fs.width + gap + as_.width + gap + ts.width;
@@ -346,11 +368,13 @@ fn layout(t: &mut Toast) {
         t.arrow.setFrameOrigin(NSPoint::new(x, y1 + (row1_h - as_.height) / 2.0));
         x += as_.width + gap;
         t.to.setFrameOrigin(NSPoint::new(x, y1 + (row1_h - ts.height) / 2.0));
-        t.detail.setFrameOrigin(NSPoint::new(pad_x, pad_y));
+        let detail_y = if asking { pad_y + buttons.height + 6.0 } else { pad_y };
+        t.detail.setFrameOrigin(NSPoint::new(pad_x, detail_y));
         if offering {
-            let a = t.keep_here.frame().size;
+            let (a, b) = (t.keep_here.frame().size, t.keep_all.frame().size);
             t.keep_here.setFrameOrigin(NSPoint::new(pad_x - 6.0, pad_y - 4.0));
             t.keep_all.setFrameOrigin(NSPoint::new(pad_x - 6.0 + a.width + 6.0, pad_y - 4.0));
+            t.not_now.setFrameOrigin(NSPoint::new(pad_x - 6.0 + a.width + 6.0 + b.width + 6.0, pad_y - 4.0));
         }
 
         let screen = NSScreen::mainScreen(mtm);

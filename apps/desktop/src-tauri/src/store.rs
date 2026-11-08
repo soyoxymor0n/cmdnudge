@@ -1,4 +1,5 @@
-//! Local SQLite store. Holds counters of library actions, per-day totals and settings. Nothing else.
+//! Local SQLite store. Holds counters of library actions, per-day totals, settings and the
+//! per-app deliberate-use evidence (#31, local only). Nothing else.
 //!
 //! Invariant 5: no timestamps finer than a day, no chords, no text, no window titles.
 //! `counter` rows are what sync (later) sends; `daily` never leaves the device (D9).
@@ -65,6 +66,22 @@ pub struct ActionProgress {
     pub win_uses: i64,
 }
 
+#[derive(Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct EvidenceRow {
+    pub habit: String,
+    pub bundle_id: String,
+    pub uses: i64,
+    pub days: i64,
+    pub last_day: String,
+}
+
+/// #31: ask "keep it?" after this many deliberate uses, on at least ASK_DAYS days; then every
+/// ASK_AGAIN more uses after "Not now" or no answer.
+pub const ASK_FIRST: i64 = 5;
+pub const ASK_DAYS: i64 = 2;
+pub const ASK_AGAIN: i64 = 20;
+
 /// D12: mastered = at least 10 correct uses and no miss in the last 14 days.
 pub fn is_mastered(correct: i64, last_miss_day: Option<&str>, today: &str) -> bool {
     if correct < 10 {
@@ -109,7 +126,11 @@ impl Store {
              CREATE TABLE IF NOT EXISTS daily (
                day TEXT NOT NULL, app_family TEXT NOT NULL, kind TEXT NOT NULL, count INTEGER NOT NULL,
                PRIMARY KEY (day, app_family, kind));
-             CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);",
+             CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+             CREATE TABLE IF NOT EXISTS evidence (
+               habit TEXT NOT NULL, bundle_id TEXT NOT NULL, uses INTEGER NOT NULL, days INTEGER NOT NULL,
+               last_day TEXT NOT NULL, ask_at INTEGER NOT NULL,
+               PRIMARY KEY (habit, bundle_id));",
         )?;
         let device_id = match conn.query_row("SELECT value FROM settings WHERE key='device_id'", [], |r| r.get(0)) {
             Ok(id) => id,
@@ -265,13 +286,54 @@ impl Store {
     }
 
     pub fn reset_counts(&self) -> rusqlite::Result<()> {
-        self.conn.execute_batch("DELETE FROM counter; DELETE FROM daily;")
+        self.conn.execute_batch("DELETE FROM counter; DELETE FROM daily; DELETE FROM evidence;")
+    }
+
+    /// #31: a Windows shortcut used in this app and not followed by the Mac way. Counts uses and the
+    /// distinct days they happened on (day granularity only, invariant 5). Never synced.
+    pub fn record_deliberate(&self, habit: &str, bundle_id: &str, day: &str) -> rusqlite::Result<()> {
+        self.conn.execute(
+            "INSERT INTO evidence VALUES (?1, ?2, 1, 1, ?3, ?4)
+             ON CONFLICT(habit, bundle_id) DO UPDATE SET uses = uses + 1,
+               days = days + (last_day != ?3), last_day = ?3",
+            params![habit, bundle_id, day, ASK_FIRST],
+        )?;
+        Ok(())
+    }
+
+    /// #31: is it time to ask whether this shortcut is meant? If so, the next question waits for
+    /// ASK_AGAIN more uses, whatever the answer (Keep ends the hints anyway).
+    pub fn should_ask(&self, habit: &str, bundle_id: &str) -> rusqlite::Result<bool> {
+        let row: Option<(i64, i64, i64)> = self
+            .conn
+            .query_row("SELECT uses, days, ask_at FROM evidence WHERE habit=?1 AND bundle_id=?2", params![habit, bundle_id], |r| {
+                Ok((r.get(0)?, r.get(1)?, r.get(2)?))
+            })
+            .ok();
+        let Some((uses, days, ask_at)) = row else { return Ok(false) };
+        if uses < ask_at || days < ASK_DAYS {
+            return Ok(false);
+        }
+        self.conn.execute(
+            "UPDATE evidence SET ask_at = ?3 WHERE habit=?1 AND bundle_id=?2",
+            params![habit, bundle_id, uses + ASK_AGAIN],
+        )?;
+        Ok(true)
+    }
+
+    /// The evidence rows, for the "what is stored" screen.
+    pub fn evidence(&self) -> rusqlite::Result<Vec<EvidenceRow>> {
+        let mut st = self.conn.prepare("SELECT habit, bundle_id, uses, days, last_day FROM evidence ORDER BY habit, bundle_id")?;
+        let rows = st.query_map([], |r| {
+            Ok(EvidenceRow { habit: r.get(0)?, bundle_id: r.get(1)?, uses: r.get(2)?, days: r.get(3)?, last_day: r.get(4)? })
+        })?;
+        rows.collect()
     }
 
     /// Every column of every table, for the "what is stored" screen and the privacy test.
     pub fn columns(&self) -> rusqlite::Result<Vec<(String, Vec<String>)>> {
         let mut out = vec![];
-        for t in ["counter", "daily", "settings"] {
+        for t in ["counter", "daily", "settings", "evidence"] {
             let mut st = self.conn.prepare(&format!("PRAGMA table_info({t})"))?;
             let cols = st.query_map([], |r| r.get::<_, String>(1))?.collect::<Result<Vec<_>, _>>()?;
             out.push((t.to_string(), cols));
@@ -345,5 +407,31 @@ mod tests {
             ["device_id", "platform", "app_family", "action_id", "kind", "count", "first_seen_day", "last_seen_day"]
         );
         assert_eq!(cols[1].1, ["day", "app_family", "kind", "count"]);
+        assert_eq!(cols[3].1, ["habit", "bundle_id", "uses", "days", "last_day", "ask_at"]);
+    }
+
+    #[test]
+    fn asks_after_five_uses_on_two_days_then_every_twenty() {
+        let s = Store::in_memory().unwrap();
+        let app = "com.apple.Terminal";
+        for _ in 0..6 {
+            s.record_deliberate("copy", app, "2026-11-06").unwrap();
+        }
+        assert!(!s.should_ask("copy", app).unwrap(), "one day is not enough");
+        s.record_deliberate("copy", app, "2026-11-07").unwrap();
+        assert!(s.should_ask("copy", app).unwrap());
+        assert!(!s.should_ask("copy", app).unwrap(), "asked once, not again at once");
+        for _ in 0..19 {
+            s.record_deliberate("copy", app, "2026-11-07").unwrap();
+        }
+        assert!(!s.should_ask("copy", app).unwrap());
+        s.record_deliberate("copy", app, "2026-11-08").unwrap();
+        assert!(s.should_ask("copy", app).unwrap());
+        // Another app has its own evidence.
+        assert!(!s.should_ask("copy", "com.google.Chrome").unwrap());
+        let ev = s.evidence().unwrap();
+        assert_eq!((ev[0].uses, ev[0].days), (27, 3));
+        s.reset_counts().unwrap();
+        assert!(s.evidence().unwrap().is_empty());
     }
 }

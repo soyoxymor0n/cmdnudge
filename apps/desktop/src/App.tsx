@@ -740,7 +740,7 @@ function SettingsView(p: { status: Status; settings: Settings; save: (s: Partial
       <section className="card">
         <h2>What is stored</h2>
         <p className="muted small">
-          One SQLite file in ~/Library/Application Support/com.cmdnudge.app. These are all of its rows. Nothing is sent anywhere unless you switch on one of the syncs above, and then only these counters.
+          One SQLite file in ~/Library/Application Support/com.cmdnudge.app. These are all of its rows. Nothing is sent anywhere unless you switch on one of the syncs above, and then only these counters. The second table counts, per app, Windows shortcuts you used without switching to the Mac way afterwards, so cmdnudge can ask whether you mean them. It never leaves this Mac.
         </p>
         <div className="row">
           <button className="btn" onClick={() => api.raw().then(setRaw)}>{raw ? "Refresh" : "Show the raw rows"}</button>
@@ -771,6 +771,15 @@ function SettingsView(p: { status: Status; settings: Settings; save: (s: Partial
                   </tr>
                 ))}
                 {raw.counters.length === 0 && <tr><td colSpan={7} className="muted">No rows yet.</td></tr>}
+              </tbody>
+            </table>
+            <table className="map small">
+              <thead><tr><th>habit</th><th>app</th><th>uses</th><th>days</th><th>last day</th></tr></thead>
+              <tbody>
+                {raw.evidence.map((r) => (
+                  <tr key={`${r.habit}${r.bundleId}`}><td>{r.habit}</td><td>{r.bundleId}</td><td>{r.uses}</td><td>{r.days}</td><td>{r.lastDay}</td></tr>
+                ))}
+                {raw.evidence.length === 0 && <tr><td colSpan={5} className="muted">No shortcuts used on purpose yet.</td></tr>}
               </tbody>
             </table>
           </div>

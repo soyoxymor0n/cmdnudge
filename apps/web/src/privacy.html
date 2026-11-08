@@ -27,7 +27,7 @@
     <main class="legal">
       <a class="back" href="/" data-back>← Back to cmdnudge</a>
       <h1>Privacy</h1>
-      <p class="updated">Last updated: 7 November 2026</p>
+      <p class="updated">Last updated: 8 November 2026</p>
       <p>cmdnudge is operated by Patrick Reichmann, Vienna, Austria (contact: <a href="mailto:hello@cmdnudge.com">hello@cmdnudge.com</a>). This page covers two things: the cmdnudge app for macOS, and this website, cmdnudge.com.</p>
 
       <h2>The short version</h2>
@@ -37,7 +37,8 @@
       <div class="card"><b>Key presses, briefly, in memory.</b> To notice a Windows habit, macOS lets the app see each key press. A filter (<a href="https://github.com/soyoxymor0n/cmdnudge/blob/main/apps/desktop/src-tauri/src/filter.rs">filter.rs</a>) throws away everything that is not a key combination (letters, numbers, Shift+letter, Space, Return) on the spot. Combinations are compared with the habit map and then forgotten as well.</div>
       <div class="card"><b>Counters, on your Mac.</b> For each known habit and app family (for example “Copy, in a chat app”): how often you used the Windows habit, how often the Mac shortcut, and the first and last day it happened. Plus one total per day. Days, never times.</div>
       <div class="card"><b>Settings, on your Mac.</b> Your choices (mode, guard, keyboard, layout, muted app families) and a random device id that only labels your own rows.</div>
-      <div class="card"><b>The frontmost app, briefly, in memory.</b> Its bundle id decides which app family applies; its name appears in a guard message (“would quit Slack”). Neither is stored.</div>
+      <div class="card"><b>The frontmost app, briefly, in memory.</b> Its bundle id decides which app family applies; its name appears in a guard message (“would quit Slack”). Its name is not stored. The bundle id is stored only in the case below.</div>
+      <div class="card"><b>Windows shortcuts you seem to use on purpose, per app.</b> When you press a Windows shortcut and don't switch to the Mac way within 10 seconds, the app adds one to a small counter for that shortcut and that app's identifier (com.apple.Terminal, say), with the number of days it happened and the last day. After 5 such uses on 2 different days the next hint asks whether you want to keep the shortcut. This table never leaves your Mac, is not synced, shows up under “What is stored” and is emptied by “Delete all counts”.</div>
       <div class="card"><b>The menu item you pick with the mouse, briefly, in memory.</b> Menu tips are on by default and can be turned off in settings. Through Accessibility the app sees which menu item you choose and whether it has a keyboard shortcut. The item's name is held only while the menu is open; how often you picked it is counted in memory under a scrambled key (a hash) and is gone when the app quits. Neither is written to the database or a file.</div>
       <div class="card"><b>Whether the cursor is in a built-in terminal, at the moment of a Windows shortcut.</b> In code editors like VS Code the app asks Accessibility for the style class of the focused field, so Ctrl+C in their terminal is not taken for a slip. It reads only that class name, never the field's text, and keeps nothing.</div>
       <div class="card"><b>Shortcuts you choose to keep, in your settings.</b> When you tell the app you use a Windows shortcut on purpose, it saves that shortcut and, if you kept it for one app, that app's name and identifier, so the hint stays away. They stay on this computer, are not synced, and you can remove them in Settings.</div>

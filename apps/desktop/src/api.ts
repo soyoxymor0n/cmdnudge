@@ -19,7 +19,7 @@ export interface Settings {
   kept: Kept[];
 }
 export interface Kept { habit: string; app: string | null; appName: string; shortcut: string; label: string }
-export interface KeepOffer { habit: string; bundleId: string; appName: string; shortcut: string; label: string }
+export interface KeepOffer { habit: string; bundleId: string; appName: string; shortcut: string; label: string; ask?: boolean }
 export interface RecentHint { from: string; to: string; label: string; guarded: boolean; keep: KeepOffer | null }
 export interface KeyCheck { pressed: string; family: string; meaning: string | null }
 export interface Status {
@@ -48,7 +48,9 @@ export interface CounterRow {
   device_id: string; platform: string; app_family: string; action_id: string; kind: string;
   count: number; first_seen_day: string; last_seen_day: string;
 }
-export interface RawRows { counters: CounterRow[]; daily: DailyRow[]; columns: [string, string[]][]; deviceId: string }
+export interface RawRows { counters: CounterRow[]; daily: DailyRow[]; columns: [string, string[]][]; evidence: EvidenceRow[]; deviceId: string }
+/** #31: uses of a Windows shortcut not followed by the Mac way, per app. Never leaves this Mac. */
+export interface EvidenceRow { habit: string; bundleId: string; uses: number; days: number; lastDay: string }
 
 export interface SyncReport { day: string; devices: number; rows: number; skippedRows: number; problems: string[] }
 export type Availability = "open" | "notYet" | "offline";

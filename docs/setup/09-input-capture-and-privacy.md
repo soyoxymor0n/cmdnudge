@@ -41,6 +41,10 @@ Built-in terminals of code editors (#30): when a Ctrl habit fires in another app
 
 The user can keep a Windows shortcut on purpose, in one app or everywhere: no hint, no slip counted, nothing changed by translate or strict. Guards cannot be kept. The entry (habit id, app bundle id and name, display text) lives in the local settings JSON, by the user's own choice; it is not synced and is listed in Settings with Remove.
 
+## Deliberate-use evidence (#31)
+
+A hinted Windows shortcut not followed by the same action's Mac way in the same app within 10 s counts as deliberate. The pending check lives in memory (an `Instant`, never stored); after 10 s the `evidence` table gets +1 for (habit id, bundle id) with the number of distinct days and the last day. No time of day, no keys, no text. It is local only: not synced, not exported, shown under "What is stored", cleared by "Delete all counts". After 5 uses on 2 days the next hint asks "Keep it?" (see 02-features); then again after 20 more uses.
+
 ## Sync privacy
 
 - Hosted: Clerk account (email) + counter rows. The privacy page lists exactly these fields. Account deletion deletes all rows at once.
@@ -51,5 +55,6 @@ The user can keep a Windows shortcut on purpose, in one app or everywhere: no hi
 
 - Filter: plain letters, Shift+letter, digits, space, Return never pass; Ctrl+C, ⌘C, AltGr+Q, F2, Alt+F4 pass.
 - Store: after a scripted session of typed text + shortcuts, the database contains only counter rows of library actions.
+- Evidence: a slip followed by the Mac way is not counted; the Mac way in another app does not cancel it.
 - Sync payload snapshot: no field outside the documented row format.
 - Secure input: no event is processed while it is enabled.
