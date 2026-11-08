@@ -623,11 +623,19 @@ section { padding: clamp(80px, 11vw, 150px) var(--gutter); position: relative; }
 .lay-ex kbd { font: 600 12px/1 var(--body); padding: 2px 5px; border-radius: 5px; border: 1px solid var(--line-2); color: var(--ink); }
 .lay-other { border-style: dashed; justify-content: center; }
 .lay-other .lay-ex { color: var(--ink-2); }
+.lay-detail { display: none; }
+.lay-detail .lay-chars span { min-width: 30px; height: 30px; }
 @media (max-width: 600px) {
-  .lay-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-  .lay-tile { padding: 12px; gap: 8px; border-radius: 12px; }
-  .lay-tile b { font-size: 13.5px; }
-  .lay-chars span { min-width: 22px; height: 22px; padding: 0 4px; font-size: 12px; border-radius: 5px; }
-  .lay-tile:not(.lay-other) .lay-ex { display: none; }
-  .lay-other { grid-column: 1 / -1; }
+  /* phones: the names as wrapping chips, the picked layout in one card under them */
+  .lay-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .lay-tile { padding: 7px 12px; border-radius: 999px; gap: 0; }
+  .lay-tile:hover { transform: none; }
+  .lay-tile b { font: 600 13px/1.2 var(--body); }
+  .lay-tile .lay-chars, .lay-tile .lay-ex { display: none; }
+  .lay-tile[aria-pressed='true'] { background: color-mix(in srgb, var(--mac) 18%, var(--bg-2)); box-shadow: none; }
+  .lay-other { border-style: dashed; color: var(--ink-2); }
+  .lay-detail { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; padding: 16px; border-radius: 16px;
+    border: 1px solid var(--mac); background: color-mix(in srgb, var(--bg-2) 70%, transparent); }
+  .lay-detail:empty { display: none; }
+  .lay-detail b { font: 600 15px/1.25 var(--display); }
 }

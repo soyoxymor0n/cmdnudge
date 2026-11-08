@@ -400,6 +400,10 @@ function layTiles() {
     });
   }
   $$('button[data-layout]', layGrid).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.layout === state.layout)));
+  // Phones show the names as chips and the picked layout in one card under them (no wall of tiles).
+  const det = $('#layDetail');
+  const on = $('button[aria-pressed="true"]', layGrid) || $('.lay-other', layGrid);
+  if (det && on) det.innerHTML = [...on.children].map((c) => c.outerHTML).join('');
 }
 layTiles();
 const isMacOS = /Mac/i.test(navigator.userAgentData?.platform || navigator.platform || '');
