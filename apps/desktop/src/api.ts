@@ -15,8 +15,12 @@ export interface Settings {
   syncFolder: string | null;
   menuTips: boolean;
   quietWhileSharing: boolean;
+  /** Shortcuts kept on purpose (#29); app null = everywhere. */
+  kept: Kept[];
 }
-export interface RecentHint { from: string; to: string; label: string; guarded: boolean }
+export interface Kept { habit: string; app: string | null; appName: string; shortcut: string; label: string }
+export interface KeepOffer { habit: string; bundleId: string; appName: string; shortcut: string; label: string }
+export interface RecentHint { from: string; to: string; label: string; guarded: boolean; keep: KeepOffer | null }
 export interface KeyCheck { pressed: string; family: string; meaning: string | null }
 export interface Status {
   version: string;

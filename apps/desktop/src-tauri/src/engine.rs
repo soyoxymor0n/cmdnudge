@@ -6,7 +6,7 @@ use crate::chord::{format_mac, format_pressed, format_windows, Chord, Pattern};
 use crate::keymap::Layout;
 use crate::library::{self, Keyboard};
 use crate::matcher::{self, Context, Exclusion, Outcome};
-use crate::settings::{Mode, Settings};
+use crate::settings::{Kept, Mode, Settings};
 use crate::store::{self, Kind, Store};
 use serde::Serialize;
 use std::collections::VecDeque;
@@ -38,6 +38,19 @@ pub struct ToastSpec {
     pub detail: String,
     pub style: ToastStyle,
     pub duration_ms: u64,
+    /// Habit hints offer "Keep" (#29); guards and tips don't.
+    pub keep: Option<KeepOffer>,
+}
+
+/// What a "Keep" click on a hint (toast or menu bar) refers to (#29).
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KeepOffer {
+    pub habit: String,
+    pub bundle_id: String,
+    pub app_name: String,
+    pub shortcut: String,
+    pub label: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -47,6 +60,8 @@ pub struct RecentHint {
     pub to: String,
     pub label: String,
     pub guarded: bool,
+    /// None for guards: a guarded chord can't be kept.
+    pub keep: Option<KeepOffer>,
 }
 
 /// The last kept key combination, shown live in Settings > Key check. Memory only, never stored.
@@ -59,7 +74,16 @@ pub struct KeyCheck {
 }
 
 enum Job {
-    Habit { rule_id: String, family: String, app: String, blocked: bool, translated: bool },
+    Habit {
+        rule_id: String,
+        family: String,
+        bundle_id: String,
+        app: String,
+        blocked: bool,
+        translated: bool,
+        /// Ask Accessibility whether the focus is in an editor's built-in terminal first (#30).
+        check_terminal: bool,
+    },
     Correct { action: String, family: String },
 }
 
@@ -71,6 +95,7 @@ pub struct Engine {
     pub key_check: Mutex<Option<KeyCheck>>,
     jobs: Mutex<Option<Sender<Job>>>,
     toast: OnceLock<Box<dyn Fn(ToastSpec) + Send + Sync>>,
+    terminal_probe: OnceLock<Box<dyn Fn() -> bool + Send + Sync>>,
     changed: OnceLock<Box<dyn Fn() + Send + Sync>>,
 }
 
@@ -92,12 +117,36 @@ impl Engine {
             key_check: Mutex::new(None),
             jobs: Mutex::new(None),
             toast: OnceLock::new(),
+            terminal_probe: OnceLock::new(),
             changed: OnceLock::new(),
         }
     }
 
     pub fn on_toast(&self, f: impl Fn(ToastSpec) + Send + Sync + 'static) {
         let _ = self.toast.set(Box::new(f));
+    }
+
+    /// #30: says whether the keyboard focus is in a built-in terminal (xterm.js in VS Code, Cursor,
+    /// …). Platform code sets it; without it nothing counts as a terminal.
+    pub fn on_terminal_probe(&self, f: impl Fn() -> bool + Send + Sync + 'static) {
+        let _ = self.terminal_probe.set(Box::new(f));
+    }
+
+    fn in_terminal(&self) -> bool {
+        self.terminal_probe.get().is_some_and(|f| f())
+    }
+
+    /// Keep a shortcut on purpose (#29), in the hint's app or everywhere.
+    pub fn keep(&self, offer: &KeepOffer, everywhere: bool) {
+        let mut s = self.settings.read().unwrap().clone();
+        s.keep(Kept {
+            habit: offer.habit.clone(),
+            app: if everywhere { None } else { Some(offer.bundle_id.clone()) },
+            app_name: if everywhere { String::new() } else { offer.app_name.clone() },
+            shortcut: offer.shortcut.clone(),
+            label: offer.label.clone(),
+        });
+        self.save_settings(s);
     }
 
     pub fn on_changed(&self, f: impl Fn() + Send + Sync + 'static) {
@@ -191,14 +240,34 @@ impl Engine {
             family: &family.id,
             exclusion: self.exclusion(&family.id, &settings),
         };
-        let outcome = matcher::evaluate(lib, &ctx, chord);
+        let mut outcome = matcher::evaluate(lib, &ctx, chord);
+        let mut note = None;
+        // #29: a shortcut kept on purpose is neither hinted, counted nor changed. Guards stay.
+        if let Some(Outcome::Habit(r)) = &outcome {
+            if !r.guard && settings.is_kept(&r.habit, bundle_id) {
+                note = Some(format!("kept on purpose: {}", format_windows(&r.windows)));
+                outcome = None;
+            }
+        }
+        // #30: in an editor's built-in terminal Ctrl habits are right, as in a terminal app (and the
+        // "Quiet in Terminal" switch covers both). Only typing habits and guards stay.
+        let terminal_rules = matches!(&outcome, Some(Outcome::Habit(r))
+            if ctx.exclusion == Exclusion::None && r.category != "typing" && !r.guard
+                && self.exclusion("terminal", &settings) != Exclusion::None);
+        // Hint-only mode lets the key through anyway, so the worker asks; the other modes decide
+        // here whether to change the key.
+        let check_terminal = terminal_rules && settings.mode == Mode::Toast;
+        if terminal_rules && !check_terminal && self.in_terminal() {
+            note = Some("a terminal: Ctrl keys are right here".to_string());
+            outcome = None;
+        }
         *self.key_check.lock().unwrap() = Some(KeyCheck {
             pressed: format_pressed(chord),
             family: family.label.clone(),
             meaning: match &outcome {
                 Some(Outcome::Habit(r)) => Some(format!("habit {} → {}", format_windows(&r.windows), format_mac(&r.mac[0]))),
                 Some(Outcome::Correct { action }) => lib.action(action).map(|a| format!("the Mac way: {}", a.label)),
-                None => None,
+                None => note,
             },
         });
         let decision = match &outcome {
@@ -214,9 +283,11 @@ impl Engine {
                 Some(Outcome::Habit(r)) => Some(Job::Habit {
                     rule_id: r.id.clone(),
                     family: family.id.clone(),
+                    bundle_id: bundle_id.to_string(),
                     app: app_name.to_string(),
                     blocked: decision == Decision::Block,
                     translated: matches!(decision, Decision::Replace(_)),
+                    check_terminal,
                 }),
                 Some(Outcome::Correct { action }) => Some(Job::Correct { action: action.to_string(), family: family.id.clone() }),
                 None => None,
@@ -235,8 +306,11 @@ impl Engine {
             Job::Correct { action, family } => {
                 let _ = self.store.lock().unwrap().record(&family, &action, Kind::MacCorrect, &day);
             }
-            Job::Habit { rule_id, family, app, blocked, translated } => {
+            Job::Habit { rule_id, family, bundle_id, app, blocked, translated, check_terminal } => {
                 let Some(rule) = lib.habit_rules.iter().find(|r| r.id == rule_id) else { return };
+                if check_terminal && self.in_terminal() {
+                    return;
+                }
                 let mastered = {
                     let store = self.store.lock().unwrap();
                     let was = store
@@ -247,7 +321,16 @@ impl Engine {
                     let _ = store.record(&family, &rule.action, Kind::HabitMiss, &day);
                     was
                 };
-                let spec = toast_for(rule, &app, blocked, translated, mastered);
+                let mut spec = toast_for(rule, &app, blocked, translated, mastered);
+                if spec.style != ToastStyle::Guard {
+                    spec.keep = Some(KeepOffer {
+                        habit: rule.habit.clone(),
+                        bundle_id,
+                        app_name: app.clone(),
+                        shortcut: spec.from.clone(),
+                        label: lib.action(&rule.action).map(|a| a.label.clone()).unwrap_or_default(),
+                    });
+                }
                 {
                     let mut recent = self.recent.lock().unwrap();
                     recent.push_front(RecentHint {
@@ -255,6 +338,7 @@ impl Engine {
                         to: spec.to.clone(),
                         label: lib.action(&rule.action).map(|a| a.label.clone()).unwrap_or_default(),
                         guarded: blocked && rule.guard,
+                        keep: spec.keep.clone(),
                     });
                     recent.truncate(5);
                 }
@@ -302,6 +386,7 @@ pub fn toast_for(
             detail: format!("For {label} press {mac}"),
             style: ToastStyle::Guard,
             duration_ms: 3500 + 1000 * extra_keys,
+            keep: None,
         };
     }
     let detail = if translated {
@@ -317,6 +402,7 @@ pub fn toast_for(
         detail,
         style: if mastered { ToastStyle::Quiet } else { ToastStyle::Hint },
         duration_ms: if mastered { 1500 } else { 2500 + 1000 * extra_keys },
+        keep: None,
     }
 }
 
@@ -388,6 +474,88 @@ mod tests {
         e.save_settings(s);
         let q = Chord { mods: RCMD, key: "q".into() };
         assert_eq!(e.on_key(&q, "com.tinyspeck.slackmacgap", "Slack", false), Decision::Pass);
+    }
+
+    fn offer(habit: &str, bundle: &str) -> KeepOffer {
+        KeepOffer { habit: habit.into(), bundle_id: bundle.into(), app_name: "Code".into(), shortcut: "Ctrl+C".into(), label: "Copy".into() }
+    }
+
+    fn translate(e: &Engine) {
+        let mut s = e.settings.read().unwrap().clone();
+        s.mode = Mode::Translate;
+        e.save_settings(s);
+    }
+
+    #[test]
+    fn a_kept_shortcut_passes_unchanged_in_that_app_only() {
+        let e = engine();
+        translate(e);
+        let c = Chord { mods: CTRL, key: "c".into() };
+        e.keep(&offer("copy", "com.microsoft.VSCode"), false);
+        assert_eq!(e.on_key(&c, "com.microsoft.VSCode", "Code", false), Decision::Pass);
+        assert_eq!(e.on_key(&c, "com.google.Chrome", "Chrome", false), Decision::Replace(Pattern::parse("cmd+c").unwrap()));
+        e.keep(&offer("copy", "com.microsoft.VSCode"), true);
+        assert_eq!(e.on_key(&c, "com.google.Chrome", "Chrome", false), Decision::Pass);
+        assert_eq!(e.settings.read().unwrap().kept.len(), 1);
+    }
+
+    #[test]
+    fn keeping_never_switches_off_the_guard() {
+        let e = engine();
+        e.keep(&offer("at-sign", "com.tinyspeck.slackmacgap"), true);
+        let q = Chord { mods: RCMD, key: "q".into() };
+        assert_eq!(e.on_key(&q, "com.tinyspeck.slackmacgap", "Slack", false), Decision::Block);
+    }
+
+    #[test]
+    fn a_kept_shortcut_is_not_counted_as_a_slip() {
+        let e = engine();
+        e.start_worker();
+        e.keep(&offer("copy", "com.microsoft.VSCode"), false);
+        let c = Chord { mods: CTRL, key: "c".into() };
+        e.on_key(&c, "com.microsoft.VSCode", "Code", false);
+        e.on_key(&c, "com.google.Chrome", "Chrome", false);
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        let rows = e.store.lock().unwrap().counters().unwrap();
+        let misses: Vec<_> = rows.iter().filter(|r| r.kind == "habit_miss").map(|r| r.app_family.as_str()).collect();
+        assert_eq!(misses, vec!["browser"]);
+    }
+
+    #[test]
+    fn editor_terminal_is_quiet_like_a_terminal_app() {
+        let e = engine();
+        e.on_terminal_probe(|| true);
+        translate(e);
+        let c = Chord { mods: CTRL, key: "c".into() };
+        assert_eq!(e.on_key(&c, "com.microsoft.VSCode", "Code", false), Decision::Pass);
+        // The typing guard still applies in a terminal.
+        assert_eq!(e.on_key(&Chord { mods: RCMD, key: "q".into() }, "com.microsoft.VSCode", "Code", false), Decision::Block);
+        // "Quiet in Terminal" switched off: hints come back, in editor terminals too.
+        let mut s = e.settings.read().unwrap().clone();
+        s.include_families = vec!["terminal".into()];
+        e.save_settings(s);
+        assert_eq!(e.on_key(&c, "com.microsoft.VSCode", "Code", false), Decision::Replace(Pattern::parse("cmd+c").unwrap()));
+    }
+
+    #[test]
+    fn editor_terminal_check_in_hint_mode_drops_the_slip() {
+        let e = engine();
+        e.on_terminal_probe(|| true);
+        e.start_worker();
+        let c = Chord { mods: CTRL, key: "c".into() };
+        assert_eq!(e.on_key(&c, "com.microsoft.VSCode", "Code", false), Decision::Pass);
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        assert!(e.store.lock().unwrap().counters().unwrap().iter().all(|r| r.kind != "habit_miss"));
+        assert!(e.recent.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn outside_a_terminal_editors_still_hint() {
+        let e = engine();
+        e.on_terminal_probe(|| false);
+        translate(e);
+        let c = Chord { mods: CTRL, key: "c".into() };
+        assert_eq!(e.on_key(&c, "com.microsoft.VSCode", "Code", false), Decision::Replace(Pattern::parse("cmd+c").unwrap()));
     }
 
     #[test]

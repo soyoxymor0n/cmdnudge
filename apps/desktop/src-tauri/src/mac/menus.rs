@@ -240,7 +240,7 @@ fn settle(st: &mut State, debug: bool) {
     }
     if tip {
         let detail = if h.title.is_empty() { "You picked it from the menu".to_string() } else { h.title.chars().take(60).collect() };
-        st.engine.show_toast(ToastSpec { from: "Tip".into(), to: h.shortcut, detail, style: ToastStyle::Tip, duration_ms: 3500 });
+        st.engine.show_toast(ToastSpec { from: "Tip".into(), to: h.shortcut, detail, style: ToastStyle::Tip, duration_ms: 3500, keep: None });
     }
 }
 

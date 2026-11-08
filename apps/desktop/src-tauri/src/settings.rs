@@ -13,6 +13,20 @@ pub enum Mode {
     Strict,
 }
 
+/// A Windows shortcut the user uses on purpose (#29): no hint and no slip for it, in one app or
+/// everywhere. `shortcut` and `label` are only kept for the Settings list.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Kept {
+    /// Habit id from the library ("copy"), the same across layouts and keyboards.
+    pub habit: String,
+    /// App bundle id; None = everywhere.
+    pub app: Option<String>,
+    pub app_name: String,
+    pub shortcut: String,
+    pub label: String,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Settings {
@@ -38,6 +52,8 @@ pub struct Settings {
     pub menu_tips: bool,
     /// No toasts while the screen is being shared or recorded (#24); counting continues. On by default.
     pub quiet_while_sharing: bool,
+    /// Shortcuts kept on purpose (#29).
+    pub kept: Vec<Kept>,
 }
 
 impl Default for Settings {
@@ -55,6 +71,7 @@ impl Default for Settings {
             sync_folder: None,
             menu_tips: true,
             quiet_while_sharing: true,
+            kept: vec![],
         }
     }
 }
@@ -62,6 +79,23 @@ impl Default for Settings {
 impl Settings {
     pub fn is_paused(&self, now: i64) -> bool {
         self.paused_until.is_some_and(|t| t > now)
+    }
+
+    /// Whether this habit is kept on purpose in this app (#29).
+    pub fn is_kept(&self, habit: &str, bundle_id: &str) -> bool {
+        self.kept.iter().any(|k| k.habit == habit && k.app.as_deref().is_none_or(|a| a == bundle_id))
+    }
+
+    /// Adds a kept shortcut. "Everywhere" replaces the app entries of the same habit; an app entry
+    /// is not added when the habit is already kept everywhere or in that app.
+    pub fn keep(&mut self, k: Kept) {
+        if self.kept.iter().any(|x| x.habit == k.habit && (x.app.is_none() || x.app == k.app)) {
+            return;
+        }
+        if k.app.is_none() {
+            self.kept.retain(|x| x.habit != k.habit);
+        }
+        self.kept.push(k);
     }
 
     /// Whether a toast may appear now (#24): never while the screen is shared and the user kept
@@ -84,5 +118,29 @@ mod tests {
         assert!(!old.toasts_allowed(true));
         let off = Settings { quiet_while_sharing: false, ..Settings::default() };
         assert!(off.toasts_allowed(true));
+    }
+
+    fn kept(habit: &str, app: Option<&str>) -> Kept {
+        Kept { habit: habit.into(), app: app.map(Into::into), app_name: "Code".into(), shortcut: "Ctrl+C".into(), label: "Copy".into() }
+    }
+
+    #[test]
+    fn keep_in_one_app_or_everywhere() {
+        let mut s = Settings::default();
+        assert!(!s.is_kept("copy", "com.microsoft.VSCode"));
+        s.keep(kept("copy", Some("com.microsoft.VSCode")));
+        s.keep(kept("copy", Some("com.microsoft.VSCode")));
+        assert_eq!(s.kept.len(), 1);
+        assert!(s.is_kept("copy", "com.microsoft.VSCode"));
+        assert!(!s.is_kept("copy", "com.google.Chrome"));
+        assert!(!s.is_kept("paste", "com.microsoft.VSCode"));
+        s.keep(kept("copy", None));
+        assert_eq!(s.kept, vec![kept("copy", None)]);
+        assert!(s.is_kept("copy", "com.google.Chrome"));
+        s.keep(kept("copy", Some("com.google.Chrome")));
+        assert_eq!(s.kept.len(), 1);
+        // Settings saved before #29 load with nothing kept.
+        let old: Settings = serde_json::from_str(r#"{"mode":"toast"}"#).unwrap();
+        assert!(old.kept.is_empty());
     }
 }

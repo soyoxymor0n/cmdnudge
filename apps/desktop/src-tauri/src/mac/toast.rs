@@ -1,18 +1,19 @@
-//! The toast: a native, non-activating NSPanel. It never becomes key, never activates
-//! cmdnudge and ignores the mouse, so the shortcut you try next goes to your app (invariant 4).
+//! The toast: a native, non-activating NSPanel. It never becomes key and never activates
+//! cmdnudge, so the shortcut you try next goes to your app (invariant 4). It ignores the mouse
+//! unless the pointer is on it: then a habit hint holds still and offers "Keep" (#29).
 
-use crate::engine::{ToastSpec, ToastStyle};
+use crate::engine::{KeepOffer, ToastSpec, ToastStyle};
 use objc2::rc::Retained;
 use objc2::runtime::AnyObject;
-use objc2::{msg_send, MainThreadMarker, MainThreadOnly};
+use objc2::{define_class, msg_send, sel, MainThreadMarker, MainThreadOnly};
 use objc2_app_kit::{
-    NSAnimatablePropertyContainer, NSBackingStoreType, NSColor, NSFont, NSPanel, NSScreen, NSTextField,
-    NSVisualEffectBlendingMode, NSVisualEffectMaterial, NSVisualEffectState, NSVisualEffectView,
-    NSWindowCollectionBehavior, NSWindowStyleMask,
+    NSAnimatablePropertyContainer, NSBackingStoreType, NSBezelStyle, NSButton, NSColor, NSControl, NSControlSize,
+    NSEvent, NSFont, NSPanel, NSResponder, NSScreen, NSTextField, NSView, NSVisualEffectBlendingMode,
+    NSVisualEffectMaterial, NSVisualEffectState, NSVisualEffectView, NSWindowCollectionBehavior, NSWindowStyleMask,
 };
-use objc2_foundation::{NSPoint, NSRect, NSSize, NSString};
+use objc2_foundation::{NSObject, NSPoint, NSRect, NSSize, NSString};
 use std::cell::RefCell;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 use tauri::AppHandle;
@@ -23,8 +24,47 @@ struct Toast {
     arrow: Retained<NSTextField>,
     to: Retained<NSTextField>,
     detail: Retained<NSTextField>,
+    keep_here: Retained<ToastButton>,
+    keep_all: Retained<ToastButton>,
+    _target: Retained<KeepTarget>,
     shown: Option<ToastSpec>,
+    /// The Keep buttons are showing (the pointer reached a habit hint).
+    offering: bool,
 }
+
+define_class!(
+    // A button that takes the first click although cmdnudge is never the active app.
+    #[unsafe(super(NSButton, NSControl, NSView, NSResponder, NSObject))]
+    #[thread_kind = MainThreadOnly]
+    #[name = "CmdnudgeToastButton"]
+    struct ToastButton;
+
+    impl ToastButton {
+        #[unsafe(method(acceptsFirstMouse:))]
+        fn accepts_first_mouse(&self, _event: Option<&NSEvent>) -> bool {
+            true
+        }
+    }
+);
+
+define_class!(
+    #[unsafe(super(NSObject))]
+    #[thread_kind = MainThreadOnly]
+    #[name = "CmdnudgeKeepTarget"]
+    struct KeepTarget;
+
+    impl KeepTarget {
+        #[unsafe(method(keepHere:))]
+        fn keep_here(&self, _sender: Option<&AnyObject>) {
+            kept_main(false);
+        }
+
+        #[unsafe(method(keepEverywhere:))]
+        fn keep_everywhere(&self, _sender: Option<&AnyObject>) {
+            kept_main(true);
+        }
+    }
+);
 
 thread_local! {
     static TOAST: RefCell<Option<Toast>> = const { RefCell::new(None) };
@@ -33,9 +73,17 @@ thread_local! {
 static APP: OnceLock<AppHandle> = OnceLock::new();
 static GENERATION: AtomicU64 = AtomicU64::new(0);
 static POSITION: Mutex<String> = Mutex::new(String::new());
+/// The pointer is on the toast: it stays until the pointer leaves.
+static HOVERED: AtomicBool = AtomicBool::new(false);
+static ON_KEEP: OnceLock<Box<dyn Fn(KeepOffer, bool) + Send + Sync>> = OnceLock::new();
 
 pub fn init(app: AppHandle) {
     let _ = APP.set(app);
+}
+
+/// What a click on "Keep" does (#29): set once by the app.
+pub fn on_keep(f: impl Fn(KeepOffer, bool) + Send + Sync + 'static) {
+    let _ = ON_KEEP.set(Box::new(f));
 }
 
 pub fn set_position(p: &str) {
@@ -46,12 +94,29 @@ pub fn set_position(p: &str) {
 /// again just extends its time on screen (no stacking).
 pub fn show(spec: ToastSpec) {
     let Some(app) = APP.get() else { return };
-    let generation = GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
     let duration = spec.duration_ms;
     let _ = app.run_on_main_thread(move || show_main(spec));
+    hide_after(duration);
+}
+
+/// Fades the toast out after `ms`, unless a newer toast came or the pointer is on it. While it
+/// is up, the pointer is watched (cheap: one location read every 80 ms).
+fn hide_after(ms: u64) {
+    let Some(app) = APP.get() else { return };
+    let generation = GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
     let app = app.clone();
     std::thread::spawn(move || {
-        std::thread::sleep(Duration::from_millis(duration));
+        let start = std::time::Instant::now();
+        loop {
+            std::thread::sleep(Duration::from_millis(80));
+            if GENERATION.load(Ordering::SeqCst) != generation {
+                return;
+            }
+            let _ = app.run_on_main_thread(track_pointer_main);
+            if start.elapsed() >= Duration::from_millis(ms) && !HOVERED.load(Ordering::SeqCst) {
+                break;
+            }
+        }
         if GENERATION.load(Ordering::SeqCst) != generation {
             return;
         }
@@ -66,7 +131,9 @@ pub fn show(spec: ToastSpec) {
                 TOAST.with(|t| {
                     if let Some(t) = t.borrow_mut().as_mut() {
                         t.panel.orderOut(None);
+                        t.panel.setIgnoresMouseEvents(true);
                         t.shown = None;
+                        HOVERED.store(false, Ordering::SeqCst);
                     }
                 });
             }
@@ -78,6 +145,67 @@ fn label(mtm: MainThreadMarker) -> Retained<NSTextField> {
     let l = NSTextField::labelWithString(&NSString::from_str(""), mtm);
     l.setSelectable(false);
     l
+}
+
+fn button(mtm: MainThreadMarker, title: &str, target: &KeepTarget, action: objc2::runtime::Sel) -> Retained<ToastButton> {
+    let b: Retained<ToastButton> =
+        unsafe { msg_send![ToastButton::alloc(mtm), initWithFrame: NSRect::new(NSPoint::new(0.0, 0.0), NSSize::new(10.0, 10.0))] };
+    b.setTitle(&NSString::from_str(title));
+    b.setBezelStyle(NSBezelStyle::Push);
+    b.setControlSize(NSControlSize::Small);
+    b.setFont(Some(&NSFont::systemFontOfSize(11.0)));
+    unsafe {
+        b.setTarget(Some(target));
+        b.setAction(Some(action));
+    }
+    b.setHidden(true);
+    b
+}
+
+/// Called every 80 ms while a toast is up: is the pointer on it?
+fn track_pointer_main() {
+    TOAST.with(|cell| {
+        let mut cell = cell.borrow_mut();
+        let Some(t) = cell.as_mut() else { return };
+        if t.shown.is_none() || !t.panel.isVisible() {
+            return;
+        }
+        let p = NSEvent::mouseLocation();
+        let f = t.panel.frame();
+        let inside = p.x >= f.origin.x && p.x <= f.origin.x + f.size.width && p.y >= f.origin.y && p.y <= f.origin.y + f.size.height;
+        HOVERED.store(inside, Ordering::SeqCst);
+        t.panel.setIgnoresMouseEvents(!inside);
+        if inside {
+            t.panel.setAlphaValue(1.0);
+            if !t.offering && t.shown.as_ref().is_some_and(|s| s.keep.is_some()) {
+                t.offering = true;
+                layout(t);
+            }
+        }
+    });
+}
+
+/// A Keep button was clicked.
+fn kept_main(everywhere: bool) {
+    let offer = TOAST.with(|cell| {
+        let mut cell = cell.borrow_mut();
+        let t = cell.as_mut()?;
+        let offer = t.shown.as_ref()?.keep.clone()?;
+        let mut done = t.shown.clone()?;
+        done.detail = if everywhere { "Kept everywhere · undo in Settings".into() } else { format!("Kept in {} · undo in Settings", offer.app_name) };
+        done.keep = None;
+        t.detail.setStringValue(&NSString::from_str(&done.detail));
+        t.detail.sizeToFit();
+        t.shown = Some(done);
+        t.offering = false;
+        layout(t);
+        Some(offer)
+    });
+    if let (Some(offer), Some(f)) = (offer, ON_KEEP.get()) {
+        f(offer, everywhere);
+    }
+    HOVERED.store(false, Ordering::SeqCst);
+    hide_after(1400);
 }
 
 fn build(mtm: MainThreadMarker) -> Toast {
@@ -127,7 +255,12 @@ fn build(mtm: MainThreadMarker) -> Toast {
     for l in [&from, &arrow, &to, &detail] {
         effect.addSubview(l);
     }
-    Toast { panel, from, arrow, to, detail, shown: None }
+    let target: Retained<KeepTarget> = unsafe { msg_send![KeepTarget::alloc(mtm), init] };
+    let keep_here = button(mtm, "Keep here", &target, sel!(keepHere:));
+    let keep_all = button(mtm, "Keep everywhere", &target, sel!(keepEverywhere:));
+    effect.addSubview(&keep_here);
+    effect.addSubview(&keep_all);
+    Toast { panel, from, arrow, to, detail, keep_here, keep_all, _target: target, shown: None, offering: false }
 }
 
 fn show_main(spec: ToastSpec) {
@@ -141,6 +274,7 @@ fn show_main(spec: ToastSpec) {
             t.panel.setAlphaValue(1.0);
             return;
         }
+        t.offering = false;
 
         let quiet = spec.style == ToastStyle::Quiet;
         let guard = spec.style == ToastStyle::Guard;
@@ -171,13 +305,36 @@ fn show_main(spec: ToastSpec) {
         for l in [&t.from, &t.arrow, &t.to, &t.detail] {
             l.sizeToFit();
         }
+        if let Some(k) = &spec.keep {
+            t.keep_here.setTitle(&NSString::from_str(&format!("Keep in {}", k.app_name)));
+        }
+        layout(t);
+    });
+}
 
+/// Places the labels (and the Keep buttons while offered) and moves the panel into its corner.
+fn layout(t: &mut Toast) {
+    let Some(mtm) = MainThreadMarker::new() else { return };
+    let offering = t.offering;
+    t.detail.setHidden(offering);
+    t.keep_here.setHidden(!offering);
+    t.keep_all.setHidden(!offering);
+    if offering {
+        t.keep_here.sizeToFit();
+        t.keep_all.sizeToFit();
+    }
+    {
         // Layout: row 1 = from → to (baseline-ish aligned), row 2 = detail.
         let (pad_x, pad_y, gap) = (16.0, 11.0, 8.0);
         let fs = t.from.frame().size;
         let as_ = t.arrow.frame().size;
         let ts = t.to.frame().size;
-        let ds = t.detail.frame().size;
+        let ds = if offering {
+            let (a, b) = (t.keep_here.frame().size, t.keep_all.frame().size);
+            NSSize::new(a.width + 6.0 + b.width, a.height.max(b.height))
+        } else {
+            t.detail.frame().size
+        };
         let row1_h = fs.height.max(ts.height);
         let row1_w = fs.width + gap + as_.width + gap + ts.width;
         let w = (row1_w.max(ds.width) + pad_x * 2.0).max(180.0).ceil();
@@ -190,6 +347,11 @@ fn show_main(spec: ToastSpec) {
         x += as_.width + gap;
         t.to.setFrameOrigin(NSPoint::new(x, y1 + (row1_h - ts.height) / 2.0));
         t.detail.setFrameOrigin(NSPoint::new(pad_x, pad_y));
+        if offering {
+            let a = t.keep_here.frame().size;
+            t.keep_here.setFrameOrigin(NSPoint::new(pad_x - 6.0, pad_y - 4.0));
+            t.keep_all.setFrameOrigin(NSPoint::new(pad_x - 6.0 + a.width + 6.0, pad_y - 4.0));
+        }
 
         let screen = NSScreen::mainScreen(mtm);
         let vf = screen.map(|s| s.visibleFrame()).unwrap_or(NSRect::new(NSPoint::new(0.0, 0.0), NSSize::new(1440.0, 900.0)));
@@ -217,7 +379,7 @@ fn show_main(spec: ToastSpec) {
             a.setFrame_display(target, true);
         }
         t.panel.invalidateShadow();
-    });
+    }
 }
 
 fn fade_out_main() {

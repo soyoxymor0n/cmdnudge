@@ -711,6 +711,29 @@ function SettingsView(p: { status: Status; settings: Settings; save: (s: Partial
         ))}
       </section>
 
+      <section className="card">
+        <h2>Kept shortcuts</h2>
+        <p className="muted small">
+          Windows shortcuts you use on purpose: no hint, not counted. Keep one by pointing at its hint, or from Recent hints in the menu
+          bar. The guard is never switched off this way.
+        </p>
+        {settings.kept.length === 0 ? (
+          <p className="muted">None yet.</p>
+        ) : (
+          settings.kept.map((k) => (
+            <div className="row" key={`${k.habit}|${k.app ?? ""}`}>
+              <span className="k win">{k.shortcut}</span>
+              <span>{k.label}</span>
+              <span className="muted">{k.app ? `in ${k.appName}` : "everywhere"}</span>
+              <span className="grow" />
+              <button className="btn ghost" onClick={() => save({ kept: settings.kept.filter((x) => x !== k) })}>
+                Remove
+              </button>
+            </div>
+          ))
+        )}
+      </section>
+
       <SyncCard />
       <AccountSyncCard />
 

@@ -35,6 +35,12 @@ Even a kept combo is stored only as a counter of a library action (`habit_miss`,
 
 Terminal apps, remote desktop clients, VM hosts (Parallels, VMware, UTM), Citrix. Windows shortcuts are correct there (D11). The list is editable.
 
+Built-in terminals of code editors (#30): when a Ctrl habit fires in another app, the app asks Accessibility for the focused element's `AXDOMClassList`; xterm.js's `xterm-helper-textarea` (VS Code, Cursor, other Electron terminals) means "terminal", and the Terminal switch applies. Only the class list is read, never the element's value or title, and nothing is kept. Native editor terminals (Zed) are not recognised.
+
+## Kept shortcuts (#29)
+
+The user can keep a Windows shortcut on purpose, in one app or everywhere: no hint, no slip counted, nothing changed by translate or strict. Guards cannot be kept. The entry (habit id, app bundle id and name, display text) lives in the local settings JSON, by the user's own choice; it is not synced and is listed in Settings with Remove.
+
 ## Sync privacy
 
 - Hosted: Clerk account (email) + counter rows. The privacy page lists exactly these fields. Account deletion deletes all rows at once.

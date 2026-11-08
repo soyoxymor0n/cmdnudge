@@ -21,7 +21,7 @@ use engine::{Engine, KeyCheck, RecentHint, ToastSpec, ToastStyle};
 use serde::Serialize;
 use settings::Settings;
 use std::sync::OnceLock;
-use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -252,6 +252,7 @@ fn test_toast(kind: String) {
             detail: "Copy".into(),
             style: ToastStyle::Hint,
             duration_ms: 2500,
+            keep: None,
         });
     }
 }
@@ -529,7 +530,18 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
             } else {
                 format!("{} → {}   {}", r.from, r.to, r.label)
             };
-            menu.append(&MenuItem::with_id(app, format!("recent-{i}"), text, true, None::<&str>)?)?;
+            match &r.keep {
+                // #29: keep a hinted shortcut from here, once the toast is gone.
+                Some(k) => {
+                    let sub = Submenu::with_id(app, format!("recent-{i}"), text, true)?;
+                    sub.append(&MenuItem::with_id(app, format!("keep-app-{i}"), format!("Keep {} in {}", k.shortcut, k.app_name), true, None::<&str>)?)?;
+                    sub.append(&MenuItem::with_id(app, format!("keep-all-{i}"), format!("Keep {} everywhere", k.shortcut), true, None::<&str>)?)?;
+                    sub.append(&PredefinedMenuItem::separator(app)?)?;
+                    sub.append(&MenuItem::with_id(app, format!("recent-open-{i}"), "Your habits…", true, None::<&str>)?)?;
+                    menu.append(&sub)?;
+                }
+                None => menu.append(&MenuItem::with_id(app, format!("recent-{i}"), text, true, None::<&str>)?)?,
+            }
         }
     }
     menu.append(&PredefinedMenuItem::separator(app)?)?;
@@ -545,6 +557,17 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     menu.append(&PredefinedMenuItem::separator(app)?)?;
     menu.append(&MenuItem::with_id(app, "quit", "Quit cmdnudge", true, Some("CmdOrCtrl+Q"))?)?;
     Ok(menu)
+}
+
+/// "keep-app-<i>" / "keep-all-<i>" from the Recent hints submenus (#29).
+fn keep_from_menu(id: &str) {
+    let everywhere = id.starts_with("keep-all-");
+    let Some(i) = id.rsplit('-').next().and_then(|n| n.parse::<usize>().ok()) else { return };
+    let e = engine();
+    let offer = e.recent.lock().unwrap().get(i).and_then(|r| r.keep.clone());
+    if let Some(offer) = offer {
+        e.keep(&offer, everywhere);
+    }
 }
 
 fn refresh_tray(app: &AppHandle) {
@@ -612,6 +635,7 @@ pub fn run() {
             {
                 mac::toast::init(app.handle().clone());
                 mac::toast::set_position(&e.settings.read().unwrap().position);
+                mac::toast::on_keep(|offer, everywhere| engine().keep(&offer, everywhere));
                 e.on_toast(|spec| {
                     // #24: no toast while the screen is shared or recorded (counting goes on).
                     if engine().settings.read().unwrap().toasts_allowed(mac::context::screen_shared()) {
@@ -635,6 +659,8 @@ pub fn run() {
                     });
                     std::thread::sleep(std::time::Duration::from_secs(2));
                 });
+                // #30: an editor's built-in terminal counts as a terminal.
+                e.on_terminal_probe(mac::focus::in_terminal);
                 mac::tap::start(e);
                 mac::menus::start(e);
                 // Tray status follows the tap state (permissions can be granted at any time).
@@ -666,6 +692,7 @@ pub fn run() {
                     "resume" => resume(),
                     "open-stats" => show_window(app, Some("stats")),
                     "open-settings" => show_window(app, Some("settings")),
+                    id if id.starts_with("keep-") => keep_from_menu(id),
                     id if id.starts_with("recent-") => show_window(app, Some("stats")),
                     "quit" => app.exit(0),
                     _ => {}
