@@ -1,0 +1,77 @@
+<!doctype html>
+<!--
+  The social card (og-image.png, 1200x630). Not published: `node og/render.mjs` serves it
+  next to the built site so it uses the real landing.css tokens, and screenshots it into
+  src/og-image.png. One frozen frame of the hero: the slip (Ctrl+C held, the text selected)
+  and the answer (the card says ⌘C). Dark theme, brand hues: lime = Mac, purple = Windows.
+-->
+<html lang="en" class="dark" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=block" />
+    <link rel="stylesheet" href="/landing.css" />
+    <style>
+      html, body { width: 1200px; height: 630px; margin: 0; overflow: hidden; }
+      .og { position: relative; width: 1200px; height: 630px; overflow: hidden; background: var(--bg); }
+      .og .aurora i { animation: none; opacity: 0.42; }
+      .og .aurora i:nth-child(1) { width: 640px; height: 640px; right: -180px; top: -300px; }
+      .og .aurora i:nth-child(2) { width: 560px; height: 560px; left: -220px; bottom: -300px; }
+      .og .aurora i:nth-child(3) { width: 360px; height: 360px; left: 470px; top: 220px; }
+      .glyphs span { position: absolute; font: 500 22px/1 var(--mono, 'JetBrains Mono', monospace); color: var(--ink); opacity: 0.06; }
+      .row { position: relative; z-index: 2; display: grid; grid-template-columns: 520px 1fr; gap: 40px; align-items: center; height: 100%; padding: 0 48px 0 58px; }
+      .og .brandline { margin-bottom: 22px; }
+      .og .display { font-size: 76px; line-height: 0.98; }
+      .og .accent-wipe { animation: none; clip-path: none; }
+      .og .lede { margin-top: 26px; font-size: 21px; line-height: 1.45; max-width: 24em; }
+      .og .screen { aspect-ratio: auto; height: 352px; font-size: 13px; }
+      .og .toast { opacity: 1; transform: none; right: 16px; bottom: 16px; padding: 12px 18px; }
+      .og .keys { margin-top: 30px; min-height: 0; }
+      .og .reveal { opacity: 1; transform: none; }
+      .og .caret { animation: none; }
+    </style>
+  </head>
+  <body>
+    <div class="og">
+      <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="glyphs" aria-hidden="true">
+        <span style="left: 118px; top: 14px">⌥</span><span style="left: 312px; top: -6px">⌘</span>
+        <span style="left: 512px; top: 6px">⌘</span><span style="left: 136px; top: 82px">⌘</span>
+        <span style="left: 498px; top: 152px">⌘</span><span style="left: 30px; top: 376px">⌥</span>
+        <span style="left: 506px; top: 350px">⌃</span><span style="left: 296px; top: 540px">⌥</span>
+        <span style="left: 584px; top: 556px">⇧</span><span style="left: 1130px; top: 512px">⌘</span>
+        <span style="left: 1180px; top: 380px">⌘</span><span style="left: 452px; top: 574px">⌃</span>
+      </div>
+      <div class="row">
+        <div>
+          <div class="brandline"><img src="/icon.png" alt="" width="36" height="36" /><span>cmdnudge</span></div>
+          <h1 class="display">Ctrl+C.<br />Nothing happens.<br /><span class="accent-wipe">Here’s ⌘C.</span></h1>
+          <p class="lede">Your Windows shortcuts, translated the moment you press them.</p>
+        </div>
+        <div>
+          <div class="screen">
+            <div class="menubar">
+              <span class="apple"></span><b>Chat</b><span>File</span><span>Edit</span><span>View</span><span>Window</span>
+              <span class="mb-right"><i class="mb-cmd">⌘</i><span>Fri 9:41</span></span>
+            </div>
+            <div class="appwin">
+              <div class="appwin-bar"><i></i><i></i><i></i><span>#launch</span></div>
+              <div class="appwin-body">
+                <aside class="chan"><b># launch</b><span># design</span><span># random</span><span>Anna</span><span>Jonas</span></aside>
+                <div class="msgs">
+                  <div class="msg"><i style="--h: 210"></i><div><b>Anna</b><p>New build is up. Can someone copy the release notes over?</p></div></div>
+                  <div class="msg"><i style="--h: 28"></i><div><b>You</b><p class="sel is-sel">v0.4: guard for right ⌘Q, quiet hints for mastered keys</p></div></div>
+                  <div class="composer"><span></span><i class="caret"></i></div>
+                </div>
+              </div>
+            </div>
+            <div class="toast is-on">
+              <div class="t-row"><span class="t-from">Ctrl+C</span><span class="t-arrow">→</span><span class="t-to">⌘C</span></div>
+              <div class="t-detail">Copy</div>
+            </div>
+          </div>
+          <div class="keys"><span class="key is-down">Ctrl</span><span class="plus">+</span><span class="key is-down">C</span></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
