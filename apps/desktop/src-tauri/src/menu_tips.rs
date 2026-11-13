@@ -131,6 +131,33 @@ pub fn item_key(bundle_id: &str, title: &str, shortcut: &str) -> u64 {
     h.finish()
 }
 
+/// Standard macOS window traffic-light buttons.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WindowButton {
+    Close,
+    Minimize,
+    Maximize,
+}
+
+/// Maps an Accessibility `AXSubrole` value to a window button kind.
+pub fn window_button_from_subrole(subrole: &str) -> Option<WindowButton> {
+    match subrole {
+        "AXCloseButton" => Some(WindowButton::Close),
+        "AXMinimizeButton" => Some(WindowButton::Minimize),
+        "AXFullScreenButton" | "AXZoomButton" => Some(WindowButton::Maximize),
+        _ => None,
+    }
+}
+
+/// Returns `(shortcut, detail)` for a window button tip.
+pub fn window_button_tip(button: WindowButton) -> (&'static str, &'static str) {
+    match button {
+        WindowButton::Close => ("⌘W", "Close window"),
+        WindowButton::Minimize => ("⌘M", "Minimize window"),
+        WindowButton::Maximize => ("⌃⌘F", "Full screen"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -178,5 +205,18 @@ mod tests {
         assert!(t.picked(a, now));
         assert!(!t.picked(a, now + Duration::from_secs(60)));
         assert!(t.picked(a, now + QUIET_AFTER_TIP + Duration::from_secs(1)));
+    }
+
+    #[test]
+    fn window_buttons_map_to_shortcuts() {
+        assert_eq!(window_button_from_subrole("AXCloseButton"), Some(WindowButton::Close));
+        assert_eq!(window_button_from_subrole("AXMinimizeButton"), Some(WindowButton::Minimize));
+        assert_eq!(window_button_from_subrole("AXFullScreenButton"), Some(WindowButton::Maximize));
+        assert_eq!(window_button_from_subrole("AXZoomButton"), Some(WindowButton::Maximize));
+        assert_eq!(window_button_from_subrole("AXToolbarButton"), None);
+
+        assert_eq!(window_button_tip(WindowButton::Close), ("⌘W", "Close window"));
+        assert_eq!(window_button_tip(WindowButton::Minimize), ("⌘M", "Minimize window"));
+        assert_eq!(window_button_tip(WindowButton::Maximize), ("⌃⌘F", "Full screen"));
     }
 }

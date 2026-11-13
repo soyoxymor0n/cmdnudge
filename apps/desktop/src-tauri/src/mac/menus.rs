@@ -10,14 +10,22 @@
 
 #![allow(unsafe_op_in_unsafe_fn)]
 
-use super::ffi::{CFRelease, CFRunLoopAddSource, CFRunLoopGetCurrent, CFRunLoopRemoveSource, CFRunLoopRunInMode, CFStringRef, kCFRunLoopDefaultMode};
+use super::ffi::{
+    CFMachPortCreateRunLoopSource, CFMachPortInvalidate, CFMachPortRef, CFRelease, CFRunLoopAddSource,
+    CFRunLoopGetCurrent, CFRunLoopRemoveSource, CFRunLoopRunInMode, CFRunLoopSourceRef, CFStringRef,
+    CGEventGetFlags, CGEventRef, CGEventTapCreate, CGEventTapEnable, K_CG_EVENT_FLAG_MASK_ALTERNATE,
+    K_CG_EVENT_FLAG_MASK_COMMAND, K_CG_EVENT_FLAG_MASK_CONTROL, K_CG_EVENT_FLAG_MASK_SHIFT,
+    K_CG_EVENT_LEFT_MOUSE_DOWN, K_CG_EVENT_LEFT_MOUSE_UP, K_CG_EVENT_TAP_DISABLED_BY_TIMEOUT,
+    K_CG_EVENT_TAP_DISABLED_BY_USER_INPUT, K_CG_EVENT_TAP_OPTION_LISTEN_ONLY, K_CG_HEAD_INSERT_EVENT_TAP,
+    K_CG_SESSION_EVENT_TAP, kCFRunLoopDefaultMode,
+};
 use crate::engine::{Engine, ToastSpec, ToastStyle};
-use crate::menu_tips::{self, Tracker};
-use objc2_app_kit::NSWorkspace;
+use crate::menu_tips::{self, Tracker, WindowButton};
+use objc2_app_kit::{NSRunningApplication, NSWorkspace};
 use objc2_foundation::NSString;
 use std::cell::RefCell;
 use std::ffi::{c_void, CString};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 type AXUIElementRef = *const c_void;
 type AXObserverRef = *mut c_void;
@@ -42,11 +50,14 @@ const K_AX_VALUE_CGSIZE: u32 = 2;
 const K_CF_NUMBER_SINT64: i32 = 4;
 const K_CF_STRING_ENCODING_UTF8: u32 = 0x0800_0100;
 const K_CG_EVENT_SOURCE_STATE_COMBINED: i32 = 0;
-const K_CG_EVENT_LEFT_MOUSE_UP: u32 = 2;
 
 #[link(name = "ApplicationServices", kind = "framework")]
 unsafe extern "C" {
     fn AXUIElementCreateApplication(pid: i32) -> AXUIElementRef;
+    fn AXUIElementCreateSystemWide() -> AXUIElementRef;
+    fn AXUIElementCopyElementAtPosition(application: AXUIElementRef, x: f32, y: f32, element: *mut AXUIElementRef) -> i32;
+    fn AXUIElementGetPid(element: AXUIElementRef, pid: *mut i32) -> i32;
+    fn AXUIElementSetMessagingTimeout(element: AXUIElementRef, seconds: f32) -> i32;
     fn AXObserverCreate(pid: i32, callback: AXObserverCallback, out: *mut AXObserverRef) -> i32;
     fn AXObserverAddNotification(o: AXObserverRef, e: AXUIElementRef, n: CFStringRef, refcon: *mut c_void) -> i32;
     fn AXObserverGetRunLoopSource(o: AXObserverRef) -> *mut c_void;
@@ -66,6 +77,8 @@ unsafe extern "C" {
     fn CFStringCreateWithCString(alloc: *const c_void, s: *const i8, enc: u32) -> CFStringRef;
     fn CFGetTypeID(cf: CFTypeRef) -> usize;
     fn CFStringGetTypeID() -> usize;
+    fn CFBooleanGetTypeID() -> usize;
+    fn CFBooleanGetValue(b: CFTypeRef) -> bool;
     fn CFNumberGetTypeID() -> usize;
     fn CFNumberGetValue(n: CFTypeRef, kind: i32, out: *mut c_void) -> bool;
     fn CFArrayGetTypeID() -> usize;
@@ -84,6 +97,8 @@ struct Names {
     children_changed: CFStringRef,
     selected_children: CFStringRef,
     role: CFStringRef,
+    subrole: CFStringRef,
+    enabled: CFStringRef,
     closed: CFStringRef,
     title: CFStringRef,
     cmd_char: CFStringRef,
@@ -100,13 +115,24 @@ struct Highlight {
     at: Instant,
 }
 
+struct PressedButton {
+    kind: WindowButton,
+    frame: (f64, f64, f64, f64),
+    bundle_id: String,
+    at: Instant,
+}
+
 struct State {
     engine: &'static Engine,
     names: Names,
+    system: AXUIElementRef,
+    own_pid: i32,
+    mouse_tap: CFMachPortRef,
     bundle_id: String,
     highlight: Option<Highlight>,
     /// A menu closed over its highlighted item; waiting for the mouse-up (menu_tips::judge).
     pending: Option<(Highlight, f64, Instant)>,
+    pressed_button: Option<PressedButton>,
     tracker: Tracker,
 }
 
@@ -122,6 +148,13 @@ unsafe fn copy_attr(e: AXUIElementRef, name: CFStringRef) -> Option<CFTypeRef> {
 unsafe fn attr_string(e: AXUIElementRef, name: CFStringRef) -> Option<String> {
     let v = copy_attr(e, name)?;
     let out = (CFGetTypeID(v) == CFStringGetTypeID()).then(|| (*(v as *const NSString)).to_string());
+    CFRelease(v);
+    out
+}
+
+unsafe fn attr_bool(e: AXUIElementRef, name: CFStringRef) -> Option<bool> {
+    let v = copy_attr(e, name)?;
+    let out = (CFGetTypeID(v) == CFBooleanGetTypeID()).then(|| CFBooleanGetValue(v));
     CFRelease(v);
     out
 }
@@ -244,6 +277,149 @@ fn settle(st: &mut State, debug: bool) {
     }
 }
 
+unsafe fn bundle_id_for_pid(pid: i32) -> Option<String> {
+    NSRunningApplication::runningApplicationWithProcessIdentifier(pid)
+        .and_then(|a| a.bundleIdentifier())
+        .map(|s| s.to_string())
+}
+
+unsafe fn on_mouse_down(st: &mut State, event: CGEventRef, debug: bool) {
+    st.pressed_button = None;
+    let mod_mask = K_CG_EVENT_FLAG_MASK_COMMAND
+        | K_CG_EVENT_FLAG_MASK_CONTROL
+        | K_CG_EVENT_FLAG_MASK_ALTERNATE
+        | K_CG_EVENT_FLAG_MASK_SHIFT;
+    if CGEventGetFlags(event) & mod_mask != 0 {
+        return;
+    }
+    let loc = CGEventGetLocation(event);
+    let mut el: AXUIElementRef = std::ptr::null();
+    if AXUIElementCopyElementAtPosition(st.system, loc.x as f32, loc.y as f32, &mut el) != 0 || el.is_null() {
+        return;
+    }
+    let subrole = attr_string(el, st.names.subrole);
+    let kind = subrole.as_deref().and_then(menu_tips::window_button_from_subrole);
+    let enabled = attr_bool(el, st.names.enabled).unwrap_or(true);
+    let mut pid: i32 = 0;
+    let has_pid = AXUIElementGetPid(el, &mut pid) == 0 && pid > 0 && pid != st.own_pid;
+    let frame = if kind.is_some() && enabled && has_pid {
+        let pos: Option<CGPoint> = attr_value(el, st.names.position, K_AX_VALUE_CGPOINT);
+        let size: Option<CGSize> = attr_value(el, st.names.size, K_AX_VALUE_CGSIZE);
+        pos.zip(size).map(|(p, s)| (p.x, p.y, s.w, s.h))
+    } else {
+        None
+    };
+    CFRelease(el);
+    let (Some(kind), Some(frame)) = (kind, frame) else { return };
+    let bundle_id = bundle_id_for_pid(pid).unwrap_or_else(|| st.bundle_id.clone());
+    if debug {
+        eprintln!("menus: window button down {kind:?} in {bundle_id}, frame {frame:?}");
+    }
+    st.pressed_button = Some(PressedButton { kind, frame, bundle_id, at: Instant::now() });
+}
+
+unsafe fn on_mouse_up(st: &mut State, event: CGEventRef, debug: bool) {
+    let Some(btn) = st.pressed_button.take() else { return };
+    if btn.at.elapsed() > Duration::from_secs(10) {
+        return;
+    }
+    let loc = CGEventGetLocation(event);
+    if !menu_tips::inside((loc.x, loc.y), btn.frame) {
+        return;
+    }
+    if !st.engine.menu_tips_allowed(&btn.bundle_id) {
+        if debug {
+            eprintln!("menus: window button tips not allowed in {}", btn.bundle_id);
+        }
+        return;
+    }
+    let (shortcut, label) = menu_tips::window_button_tip(btn.kind);
+    let key = menu_tips::item_key("", label, shortcut);
+    let tip = st.tracker.picked(key, Instant::now());
+    if debug {
+        eprintln!("menus: window button click {label:?} in {}, tip now: {tip}", btn.bundle_id);
+    }
+    if tip {
+        st.engine.show_toast(ToastSpec {
+            from: "Tip".into(),
+            to: shortcut.into(),
+            detail: label.into(),
+            style: ToastStyle::Tip,
+            duration_ms: 3500,
+            keep: None,
+        });
+    }
+}
+
+extern "C" fn mouse_callback(_proxy: *mut c_void, kind: u32, event: CGEventRef, _info: *mut c_void) -> CGEventRef {
+    STATE.with(|cell| {
+        let mut guard = cell.borrow_mut();
+        let Some(st) = guard.as_mut() else { return };
+        if kind == K_CG_EVENT_TAP_DISABLED_BY_TIMEOUT || kind == K_CG_EVENT_TAP_DISABLED_BY_USER_INPUT {
+            if !st.mouse_tap.is_null() {
+                unsafe { CGEventTapEnable(st.mouse_tap, true) };
+            }
+            return;
+        }
+        let debug = std::env::var_os("CMDNUDGE_DEBUG").is_some();
+        unsafe {
+            if kind == K_CG_EVENT_LEFT_MOUSE_DOWN {
+                on_mouse_down(st, event, debug);
+            } else if kind == K_CG_EVENT_LEFT_MOUSE_UP {
+                on_mouse_up(st, event, debug);
+            }
+        }
+    });
+    event
+}
+
+struct MouseTap {
+    port: CFMachPortRef,
+    source: CFRunLoopSourceRef,
+}
+
+unsafe fn start_mouse_tap() -> Option<MouseTap> {
+    let mask = (1u64 << K_CG_EVENT_LEFT_MOUSE_DOWN) | (1u64 << K_CG_EVENT_LEFT_MOUSE_UP);
+    let port = CGEventTapCreate(
+        K_CG_SESSION_EVENT_TAP,
+        K_CG_HEAD_INSERT_EVENT_TAP,
+        K_CG_EVENT_TAP_OPTION_LISTEN_ONLY,
+        mask,
+        mouse_callback,
+        std::ptr::null_mut(),
+    );
+    if port.is_null() {
+        return None;
+    }
+    let source = CFMachPortCreateRunLoopSource(std::ptr::null(), port, 0);
+    if source.is_null() {
+        CFMachPortInvalidate(port);
+        CFRelease(port);
+        return None;
+    }
+    CFRunLoopAddSource(CFRunLoopGetCurrent(), source, kCFRunLoopDefaultMode);
+    CGEventTapEnable(port, true);
+    STATE.with(|cell| {
+        if let Some(st) = cell.borrow_mut().as_mut() {
+            st.mouse_tap = port;
+        }
+    });
+    Some(MouseTap { port, source })
+}
+
+unsafe fn stop_mouse_tap(t: MouseTap) {
+    STATE.with(|cell| {
+        if let Some(st) = cell.borrow_mut().as_mut() {
+            st.mouse_tap = std::ptr::null_mut();
+            st.pressed_button = None;
+        }
+    });
+    CFRunLoopRemoveSource(CFRunLoopGetCurrent(), t.source, kCFRunLoopDefaultMode);
+    CFMachPortInvalidate(t.port);
+    CFRelease(t.source);
+    CFRelease(t.port);
+}
+
 struct Observing {
     pid: i32,
     observer: AXObserverRef,
@@ -281,6 +457,12 @@ pub fn start(engine: &'static Engine) {
     std::thread::Builder::new()
         .name("cmdnudge-menus".into())
         .spawn(move || {
+            let own = std::process::id() as i32;
+            let system = unsafe {
+                let s = AXUIElementCreateSystemWide();
+                AXUIElementSetMessagingTimeout(s, 0.08);
+                s
+            };
             STATE.with(|cell| {
                 *cell.borrow_mut() = Some(State {
                     engine,
@@ -289,6 +471,8 @@ pub fn start(engine: &'static Engine) {
                         children_changed: cfstr("AXSelectedChildrenChanged"),
                         selected_children: cfstr("AXSelectedChildren"),
                         role: cfstr("AXRole"),
+                        subrole: cfstr("AXSubrole"),
+                        enabled: cfstr("AXEnabled"),
                         closed: cfstr("AXMenuClosed"),
                         title: cfstr("AXTitle"),
                         cmd_char: cfstr("AXMenuItemCmdChar"),
@@ -297,14 +481,18 @@ pub fn start(engine: &'static Engine) {
                         position: cfstr("AXPosition"),
                         size: cfstr("AXSize"),
                     },
+                    system,
+                    own_pid: own,
+                    mouse_tap: std::ptr::null_mut(),
                     bundle_id: String::new(),
                     highlight: None,
                     pending: None,
+                    pressed_button: None,
                     tracker: Tracker::default(),
                 })
             });
-            let own = std::process::id() as i32;
             let mut current: Option<Observing> = None;
+            let mut mouse_tap: Option<MouseTap> = None;
             let mut last_wanted: Option<bool> = None;
             loop {
                 let wanted = engine.settings.read().unwrap().menu_tips && super::context::accessibility_granted();
@@ -312,6 +500,13 @@ pub fn start(engine: &'static Engine) {
                     eprintln!("menus: observing={wanted} (setting {}, accessibility {})", engine.settings.read().unwrap().menu_tips, super::context::accessibility_granted());
                 }
                 last_wanted = Some(wanted);
+                if wanted && mouse_tap.is_none() {
+                    mouse_tap = unsafe { start_mouse_tap() };
+                } else if !wanted {
+                    if let Some(t) = mouse_tap.take() {
+                        unsafe { stop_mouse_tap(t) };
+                    }
+                }
                 let front = if wanted {
                     NSWorkspace::sharedWorkspace().frontmostApplication().map(|a| {
                         (a.processIdentifier(), a.bundleIdentifier().map(|s| s.to_string()).unwrap_or_default())
@@ -334,8 +529,8 @@ pub fn start(engine: &'static Engine) {
                         current = unsafe { observe(pid) };
                     }
                 }
-                if current.is_some() {
-                    // Delivers the observer callbacks; short, so a pending pick is decided promptly.
+                if current.is_some() || mouse_tap.is_some() {
+                    // Delivers the observer and mouse-tap callbacks; short, so a pending pick is decided promptly.
                     unsafe { CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.15, false) };
                     let debug = std::env::var_os("CMDNUDGE_DEBUG").is_some();
                     STATE.with(|cell| {

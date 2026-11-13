@@ -620,9 +620,9 @@ function SettingsView(p: { status: Status; settings: Settings; save: (s: Partial
         <label className="switch-row">
           <input type="checkbox" checked={settings.menuTips} onChange={(e) => save({ menuTips: e.target.checked })} />
           <span>
-            <b>Tips for menu items you click</b>
+            <b>Tips for menu items and window buttons you click</b>
             <em>
-              The third time you pick a menu item with the mouse, cmdnudge shows its shortcut once. Needs Accessibility. Menu names are
+              The third time you pick a menu item or window button (close, minimize, full screen) with the mouse, cmdnudge shows its shortcut once. Needs Accessibility. Menu names are
               only held while the menu is open, never stored.
             </em>
           </span>
