@@ -20,6 +20,8 @@ pub const K_CG_EVENT_TAP_OPTION_LISTEN_ONLY: u32 = 1;
 pub const K_CG_EVENT_LEFT_MOUSE_DOWN: u32 = 1;
 pub const K_CG_EVENT_LEFT_MOUSE_UP: u32 = 2;
 pub const K_CG_EVENT_KEY_DOWN: u32 = 10;
+/// Modifier keys went down or up (#44: holding Command shows the overlay).
+pub const K_CG_EVENT_FLAGS_CHANGED: u32 = 12;
 pub const K_CG_EVENT_TAP_DISABLED_BY_TIMEOUT: u32 = 0xFFFF_FFFE;
 pub const K_CG_EVENT_TAP_DISABLED_BY_USER_INPUT: u32 = 0xFFFF_FFFF;
 

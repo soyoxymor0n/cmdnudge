@@ -48,6 +48,16 @@ extern "C" fn callback(_proxy: *mut c_void, kind: u32, event: CGEventRef, _info:
             }
             return event;
         }
+        if kind == K_CG_EVENT_FLAGS_CHANGED {
+            // #44: Command held alone can show the overlay. Our own posted events do not count.
+            if CGEventGetIntegerValueField(event, K_CG_EVENT_SOURCE_USER_DATA) != OUR_EVENTS {
+                if let Some(engine) = ENGINE.load(Ordering::Relaxed).as_ref() {
+                    let m = mods_from_flags(CGEventGetFlags(event));
+                    engine.overlay_flags(m.cmd(), m.ctrl || m.shift || m.opt());
+                }
+            }
+            return event;
+        }
         if kind != K_CG_EVENT_KEY_DOWN {
             return event;
         }
@@ -60,6 +70,10 @@ extern "C" fn callback(_proxy: *mut c_void, kind: u32, event: CGEventRef, _info:
         }
         let key = CGEventGetIntegerValueField(event, K_CG_KEYBOARD_EVENT_KEYCODE) as u16;
         let mods = mods_from_flags(CGEventGetFlags(event));
+        // #44: a key pressed with Command held is a shortcut, so it stops the overlay from showing.
+        if let Some(engine) = ENGINE.load(Ordering::Relaxed).as_ref() {
+            engine.overlay_key(mods.cmd());
+        }
         let held = Held { cmd: mods.cmd(), ctrl: mods.ctrl, opt: mods.opt(), shift: mods.shift };
         // ---- The privacy filter. Anything that is not a key combination ends here. ----
         if !is_key_combo(held, key) {
@@ -129,7 +143,7 @@ pub fn start(engine: &'static Engine) {
                     K_CG_SESSION_EVENT_TAP,
                     K_CG_HEAD_INSERT_EVENT_TAP,
                     options,
-                    1 << K_CG_EVENT_KEY_DOWN,
+                    (1 << K_CG_EVENT_KEY_DOWN) | (1 << K_CG_EVENT_FLAGS_CHANGED),
                     callback,
                     std::ptr::null_mut(),
                 )

@@ -15,6 +15,8 @@ export interface Settings {
   syncFolder: string | null;
   menuTips: boolean;
   quietWhileSharing: boolean;
+  /** Hold Command to see this app's Mac shortcuts (#44). Off by default. */
+  overlay: boolean;
   /** Shortcuts kept on purpose (#29); app null = everywhere. */
   kept: Kept[];
 }
@@ -95,6 +97,11 @@ export const api = {
 
 export const onChanged = (f: () => void) => listen("cmdnudge://changed", f);
 export const onNavigate = (f: (view: string) => void) => listen<string>("cmdnudge://navigate", (e) => f(e.payload));
+
+/** #44: what the overlay window shows: the frontmost app and its Mac shortcuts. */
+export interface OverlayRow { label: string; chord: string; category: string }
+export interface OverlayView { app: string; rows: OverlayRow[] }
+export const onOverlay = (f: (view: OverlayView) => void) => listen<OverlayView>("cmdnudge://overlay", (e) => f(e.payload));
 
 export const REPO = "https://github.com/soyoxymor0n/cmdnudge";
 export const FILTER_URL = `${REPO}/blob/main/apps/desktop/src-tauri/src/filter.rs`;

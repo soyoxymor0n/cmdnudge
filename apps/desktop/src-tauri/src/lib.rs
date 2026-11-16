@@ -9,6 +9,7 @@ mod library;
 mod mac;
 mod matcher;
 mod menu_tips;
+mod overlay;
 mod settings;
 mod store;
 mod hosted;
@@ -574,6 +575,38 @@ mod status_text_tests {
     }
 }
 
+/// What the overlay window shows: the frontmost app and its Mac shortcuts (#44).
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct OverlayView {
+    app: String,
+    rows: Vec<overlay::Row>,
+}
+
+/// Shows or hides the overlay window (#44). Runs on the main thread; the window is never focused.
+#[cfg(target_os = "macos")]
+fn overlay_step(app: &AppHandle, step: overlay::Step) {
+    let Some(w) = app.get_webview_window("overlay") else { return };
+    match step {
+        overlay::Step::Hide => {
+            let _ = w.hide();
+        }
+        overlay::Step::Show => {
+            let front = mac::context::frontmost_app();
+            let allowed = engine().overlay_allowed(&front.bundle_id, mac::context::screen_shared(), mac::context::secure_input());
+            if !allowed {
+                return;
+            }
+            let family = library::get().family_of(&front.bundle_id).id.clone();
+            let view = OverlayView { app: front.name, rows: overlay::rows(library::get(), &family) };
+            let _ = w.emit("cmdnudge://overlay", view);
+            let _ = w.center();
+            let _ = w.show();
+        }
+        overlay::Step::Nothing => {}
+    }
+}
+
 fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let e = engine();
     let paused = e.settings.read().unwrap().is_paused(engine::now());
@@ -750,6 +783,33 @@ pub fn run() {
                 e.on_terminal_probe(mac::focus::in_terminal);
                 mac::tap::start(e);
                 mac::menus::start(e);
+                // #44: hold Command to see this app's Mac shortcuts (off by default). A hidden window
+                // that never takes focus shows the rows; a timer turns a long enough hold into a Show.
+                if let Ok(w) = tauri::WebviewWindowBuilder::new(app.handle(), "overlay", tauri::WebviewUrl::App("index.html?view=overlay".into()))
+                    .title("cmdnudge")
+                    .inner_size(440.0, 480.0)
+                    .decorations(false)
+                    .transparent(true)
+                    .shadow(false)
+                    .always_on_top(true)
+                    .skip_taskbar(true)
+                    .resizable(false)
+                    .focusable(false)
+                    .visible(false)
+                    .build()
+                {
+                    // The card is smaller than the window and the overlay only displays: clicks pass through.
+                    let _ = w.set_ignore_cursor_events(true);
+                }
+                let handle = app.handle().clone();
+                e.on_overlay(move |step| {
+                    let h = handle.clone();
+                    let _ = handle.run_on_main_thread(move || overlay_step(&h, step));
+                });
+                std::thread::spawn(|| loop {
+                    std::thread::sleep(std::time::Duration::from_millis(50));
+                    engine().overlay_tick();
+                });
                 // Tray status follows the tap state (permissions can be granted at any time).
                 let handle = app.handle().clone();
                 std::thread::spawn(move || {

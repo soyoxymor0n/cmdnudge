@@ -754,6 +754,15 @@ function SettingsView(p: { status: Status; settings: Settings; save: (s: Partial
             <em>No hints pop up while Zoom, Teams, Meet or a screen recording captures your screen. Counting and the guard keep working.</em>
           </span>
         </label>
+        <label className="switch-row">
+          <input type="checkbox" checked={settings.overlay} onChange={(e) => save({ overlay: e.target.checked })} />
+          <span>
+            <b>Show this app's Mac shortcuts while you hold Command</b>
+            <em>
+              Hold Command for half a second in an app to see its Mac shortcuts. Off by default. Never in terminals, remote desktops or password fields, and not while your screen is shared if Quiet while sharing is on.
+            </em>
+          </span>
+        </label>
         <div className="row">
           <button className="btn ghost" onClick={() => api.testToast("hint")}>Show a sample hint</button>
           <button className="btn ghost" onClick={() => api.testToast("guard")}>Show the guard</button>

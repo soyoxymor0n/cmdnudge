@@ -6,6 +6,7 @@ use crate::chord::{format_mac, format_pressed, format_windows, Chord, Pattern};
 use crate::keymap::Layout;
 use crate::library::{self, Keyboard};
 use crate::matcher::{self, Context, Exclusion, Outcome};
+use crate::overlay::{self, Step};
 use crate::settings::{Kept, Mode, Settings};
 use crate::store::{self, Kind, Store};
 use serde::Serialize;
@@ -112,10 +113,18 @@ pub struct Engine {
     toast: OnceLock<Box<dyn Fn(ToastSpec) + Send + Sync>>,
     terminal_probe: OnceLock<Box<dyn Fn() -> bool + Send + Sync>>,
     changed: OnceLock<Box<dyn Fn() + Send + Sync>>,
+    /// Hold Command for the overlay (#44). Its steps go to `overlay`, which the app shows or hides.
+    hold: Mutex<overlay::Hold>,
+    overlay: OnceLock<Box<dyn Fn(Step) + Send + Sync>>,
 }
 
 pub fn now() -> i64 {
     std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0)
+}
+
+/// Milliseconds since the epoch, for the overlay's hold timing (#44).
+fn now_ms() -> i64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as i64).unwrap_or(0)
 }
 
 impl Engine {
@@ -135,7 +144,52 @@ impl Engine {
             toast: OnceLock::new(),
             terminal_probe: OnceLock::new(),
             changed: OnceLock::new(),
+            hold: Mutex::new(overlay::Hold::default()),
+            overlay: OnceLock::new(),
         }
+    }
+
+    /// #44: the platform layer shows or hides the overlay on these steps (see lib.rs).
+    pub fn on_overlay(&self, f: impl Fn(Step) + Send + Sync + 'static) {
+        let _ = self.overlay.set(Box::new(f));
+    }
+
+    fn overlay_step(&self, step: Step) {
+        if step != Step::Nothing {
+            if let Some(f) = self.overlay.get() {
+                f(step);
+            }
+        }
+    }
+
+    /// Modifier keys changed (from the event tap). `others` is Control, Option or Shift held.
+    pub fn overlay_flags(&self, cmd: bool, others: bool) {
+        let step = self.hold.lock().unwrap().flags(cmd, others, now_ms());
+        self.overlay_step(step);
+    }
+
+    /// A key went down (from the event tap). Only one pressed with Command held spoils a hold.
+    pub fn overlay_key(&self, cmd: bool) {
+        let step = self.hold.lock().unwrap().key(cmd);
+        self.overlay_step(step);
+    }
+
+    /// Called on a timer; shows the overlay once Command has been held long enough.
+    pub fn overlay_tick(&self) {
+        let step = self.hold.lock().unwrap().tick(now_ms());
+        self.overlay_step(step);
+    }
+
+    /// Whether the overlay may show for this app now (#44): the setting is on, not paused, the app
+    /// family is neither excluded (terminals, remote desktops) nor muted, no password field has
+    /// secure input, and the screen is not being shared (or sharing is allowed).
+    pub fn overlay_allowed(&self, bundle_id: &str, screen_shared: bool, secure: bool) -> bool {
+        let settings = self.settings.read().unwrap().clone();
+        if !settings.overlay || settings.is_paused(now()) || secure || !settings.toasts_allowed(screen_shared) {
+            return false;
+        }
+        let family = library::get().family_of(bundle_id).id.clone();
+        self.exclusion(&family, &settings) == Exclusion::None && !settings.muted_families.iter().any(|f| *f == family)
     }
 
     pub fn on_toast(&self, f: impl Fn(ToastSpec) + Send + Sync + 'static) {

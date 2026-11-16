@@ -52,6 +52,8 @@ pub struct Settings {
     pub menu_tips: bool,
     /// No toasts while the screen is being shared or recorded (#24); counting continues. On by default.
     pub quiet_while_sharing: bool,
+    /// Hold Command to see this app's Mac shortcuts (#44). Off by default.
+    pub overlay: bool,
     /// Shortcuts kept on purpose (#29).
     pub kept: Vec<Kept>,
 }
@@ -71,6 +73,7 @@ impl Default for Settings {
             sync_folder: None,
             menu_tips: true,
             quiet_while_sharing: true,
+            overlay: false,
             kept: vec![],
         }
     }
