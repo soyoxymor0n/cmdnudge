@@ -33,8 +33,8 @@ export function check(lib) {
   for (const h of lib.habits) for (const l of h.layouts) if (!lib.layouts.includes(l)) errors.push(`${h.id}: unknown layout ${l}`);
   const mustGuard = lib.habitRules.find((r) => r.habit === 'at-sign' && r.layout === 'de' && r.keyboard === 'apple');
   if (!mustGuard?.guard || mustGuard.arrives !== 'rcmd+q') errors.push('the right-⌘Q guard for German Apple keyboards is missing');
-  // Every typing rule that lands on a destructive chord must be guarded, whatever the layout.
-  for (const r of lib.habitRules) if (r.category === 'typing' && !r.guard && lib.destructive.map(loose).includes(loose(r.arrives))) errors.push(`${r.id}: typing habit lands on ${r.arrives} unguarded`);
+  // Every rule that lands on a destructive chord must be guarded: whatever the layout, keyboard or category (#39).
+  for (const r of lib.habitRules) if (!r.guard && lib.destructive.map(loose).includes(loose(r.arrives))) errors.push(`${r.id}: lands on ${r.arrives} unguarded`);
   for (const l of lib.layouts) if (l !== 'other' && !lib.keycaps[l]) errors.push(`layout ${l}: no keycaps`);
   return errors;
 }

@@ -16,6 +16,15 @@ const L = loadLayouts();
 export const LAYOUTS = L.layouts.map((l) => l.id);
 export const KEYBOARDS = ['apple', 'pc'];
 
+/**
+ * A rule is guarded when the chord it lands on is one of the destructive Mac chords, whatever the
+ * habit's category (#39). Only a rule whose Mac way differs from the arrival is ever emitted, so
+ * this blocks a Windows habit that would lose work, and nothing else.
+ */
+export function guardsChord(arrives, destructive) {
+  return destructive.includes(loose(arrives));
+}
+
 export function build() {
   const { appFamilies } = read('families.json');
   const h = read('habits.json');
@@ -66,7 +75,7 @@ export function build() {
           id: `${x.id}:${layout}:${keyboard}`,
           habit: x.id, action: x.action, family: x.family, layout, keyboard,
           windows: normalize(x.windows, 'win'), arrives, mac: x.mac.map((m) => normalize(m)),
-          guard: Boolean(x.guard) && destructive.includes(loose(arrives)),
+          guard: guardsChord(arrives, destructive),
           category: x.category,
         });
       }

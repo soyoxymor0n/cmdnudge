@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { build } from '../tools/generate.mjs';
+import { build, guardsChord } from '../tools/generate.mjs';
 import { check } from '../tools/check.mjs';
-import { arrive, formatMac, formatWin, matches, normalize } from '../lib/chord.mjs';
+import { arrive, formatMac, formatWin, loose, matches, normalize } from '../lib/chord.mjs';
 import { loadLayouts, typingHabits } from '../tools/layouts.mjs';
 
 const lib = build();
@@ -93,4 +93,26 @@ test('AZERTY keycaps: the number row is labelled by its digit, letters move', ()
 
 test('every layout but "other" maps to at least one Mac input source', () => {
   for (const l of lib.layoutInfo) assert.equal(l.mac.length > 0, l.id !== 'other', l.id);
+});
+
+test('the guard covers all six destructive chords, whatever the habit (#39)', () => {
+  const destructive = lib.destructive.map(loose);
+  assert.equal(destructive.length, 6);
+  for (const c of ['cmd+q', 'cmd+w', 'opt+cmd+w', 'cmd+shift+q', 'cmd+backspace', 'opt+cmd+backspace']) {
+    assert.ok(destructive.includes(loose(c)), c);
+    assert.equal(guardsChord(c, destructive), true, c);
+  }
+  // Side does not matter: right ⌘Q is the AltGr+Q case, left ⌘Q is the same chord to the guard.
+  assert.equal(guardsChord('rcmd+q', destructive), true);
+  // Chords that are not destructive are never guarded.
+  for (const c of ['ropt+q', 'ctrl+w', 'opt+q', 'cmd+c']) assert.equal(guardsChord(c, destructive), false, c);
+});
+
+test('the checker fails a rule that lands on a destructive chord unguarded, in any category (#39)', () => {
+  const fixture = {
+    id: 'fixture:win-backspace-pc', habit: 'fixture', action: 'files.trash', family: 'files',
+    layout: 'us', keyboard: 'pc', arrives: 'cmd+backspace', mac: ['opt+cmd+backspace'], guard: false, category: 'files',
+  };
+  const errors = check({ ...lib, habitRules: [...lib.habitRules, fixture] });
+  assert.ok(errors.some((e) => e.startsWith('fixture:win-backspace-pc:')), errors.join('\n'));
 });
