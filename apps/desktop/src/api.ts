@@ -6,7 +6,7 @@ export interface Settings {
   mode: Mode;
   guard: boolean;
   keyboard: "auto" | "apple" | "pc";
-  layout: "auto" | "us" | "de" | "at";
+  layout: string;
   pausedUntil: number | null;
   includeFamilies: string[];
   mutedFamilies: string[];
@@ -23,6 +23,7 @@ export interface KeepOffer { habit: string; bundleId: string; appName: string; s
 export interface RecentHint { from: string; to: string; label: string; guarded: boolean; keep: KeepOffer | null }
 export interface KeyCheck { pressed: string; family: string; meaning: string | null }
 export interface Status {
+  platform: "windows" | "macos";
   version: string;
   pausedUntil: number | null;
   tap: 0 | 1 | 2;

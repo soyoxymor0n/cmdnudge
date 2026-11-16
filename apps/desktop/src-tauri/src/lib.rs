@@ -34,6 +34,7 @@ fn engine() -> &'static Engine {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Status {
+    platform: &'static str,
     version: &'static str,
     paused_until: Option<i64>,
     tap: u8,
@@ -60,9 +61,15 @@ fn get_status() -> Status {
         mac::context::accessibility_granted(),
         mac::context::secure_input(),
     );
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(windows)]
+    let (tap, im, ax, secure) = {
+        let ready = win::hook_ready();
+        (if ready { 2 } else { 0 }, ready, ready, false)
+    };
+    #[cfg(not(any(target_os = "macos", windows)))]
     let (tap, im, ax, secure) = (0, false, false, false);
     Status {
+        platform: if cfg!(windows) { "windows" } else { "macos" },
         version: env!("CARGO_PKG_VERSION"),
         paused_until: s.paused_until.filter(|t| *t > engine::now()),
         tap,
@@ -514,6 +521,9 @@ fn status_line() -> String {
             _ => {}
         }
     }
+    #[cfg(windows)]
+    return "Recording Windows shortcuts".into();
+    #[cfg(not(windows))]
     "Watching for Windows habits".into()
 }
 
@@ -629,9 +639,35 @@ pub fn run() {
 
             // Windows (#17): count the library's Windows shortcuts; no toast, nothing blocked (D10).
             #[cfg(windows)]
-            win::start(win_recorder::Recorder::new(library::get()), move |family, action| {
-                e.record_win_use(family, action);
-            });
+            {
+                *e.detected_layout.write().unwrap() = win::active_layout();
+                win::start(win_recorder::Recorder::new(library::get()), move |family, action, chord| {
+                    e.record_win_use(family, action);
+                    e.set_win_key_check(family, action, chord);
+                });
+                let handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    let mut was_ready = false;
+                    loop {
+                        let ready = win::hook_ready();
+                        let (layout, source) = win::active_layout();
+                        let changed = {
+                            let mut cur = engine().detected_layout.write().unwrap();
+                            if cur.1 != source {
+                                *cur = (layout, source);
+                                true
+                            } else {
+                                false
+                            }
+                        };
+                        if changed || (ready && !was_ready) {
+                            was_ready = ready;
+                            let _ = handle.emit("cmdnudge://changed", ());
+                        }
+                        std::thread::sleep(std::time::Duration::from_secs(2));
+                    }
+                });
+            }
 
             #[cfg(target_os = "macos")]
             {
@@ -683,10 +719,13 @@ pub fn run() {
                 });
             }
 
+            #[cfg(target_os = "macos")]
             let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray-template.png"))?;
+            #[cfg(not(target_os = "macos"))]
+            let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/32x32.png"))?;
             TrayIconBuilder::with_id("main")
                 .icon(icon)
-                .icon_as_template(true)
+                .icon_as_template(cfg!(target_os = "macos"))
                 .tooltip("cmdnudge")
                 .menu(&build_menu(app.handle())?)
                 .show_menu_on_left_click(true)

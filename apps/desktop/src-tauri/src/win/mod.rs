@@ -9,6 +9,7 @@
 
 #![allow(unsafe_op_in_unsafe_fn)]
 
+use crate::keymap::Layout;
 use crate::win_recorder::{chord_text, key_name, Recorder, WinMods};
 use std::sync::mpsc::{channel, Sender};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -16,7 +17,7 @@ use std::sync::{Mutex, OnceLock};
 use windows_sys::Win32::Foundation::{CloseHandle, LPARAM, LRESULT, WPARAM};
 use windows_sys::Win32::System::Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION};
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
-    GetAsyncKeyState, VK_CONTROL, VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_MENU, VK_RCONTROL, VK_RMENU, VK_RSHIFT, VK_RWIN, VK_SHIFT,
+    GetAsyncKeyState, GetKeyboardLayout, VK_CONTROL, VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_MENU, VK_RCONTROL, VK_RMENU, VK_RSHIFT, VK_RWIN, VK_SHIFT,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CallNextHookEx, DispatchMessageW, GetForegroundWindow, GetMessageW, GetWindowThreadProcessId, SetWindowsHookExW, TranslateMessage, KBDLLHOOKSTRUCT,
@@ -119,7 +120,41 @@ fn foreground_exe() -> Option<String> {
 
 /// Starts the hook thread (with its message loop, which low-level hooks need) and the worker
 /// that turns a chord into (family, action) and calls `on_use`.
-pub fn start(recorder: Recorder, on_use: impl Fn(&str, &str) + Send + 'static) {
+pub fn hook_ready() -> bool {
+    HOOK_READY.load(Ordering::Relaxed)
+}
+
+/// Maps the foreground window's active Windows keyboard layout (`HKL`) to the library's `Layout`.
+pub fn active_layout() -> (Layout, String) {
+    let hkl = unsafe {
+        let hwnd = GetForegroundWindow();
+        let tid = if hwnd.is_null() { 0 } else { GetWindowThreadProcessId(hwnd, std::ptr::null_mut()) };
+        GetKeyboardLayout(tid)
+    };
+    let lang_id = (hkl as usize) & 0xFFFF;
+    let layout = match lang_id {
+        0x0407 | 0x0C07 | 0x1007 | 0x1407 => Layout::De,
+        0x0807 => Layout::ChDe,
+        0x0409 => Layout::Us,
+        0x0809 => Layout::UkPc,
+        0x040C => Layout::FrPc,
+        0x100C => Layout::ChFr,
+        0x080C => Layout::Be,
+        0x040A | 0x0C0A => Layout::Es,
+        0x0410 | 0x0810 => Layout::It,
+        0x0416 | 0x0816 => Layout::Pt,
+        0x041D | 0x081D => Layout::Se,
+        0x0414 | 0x0814 => Layout::No,
+        0x0406 => Layout::Dk,
+        0x0415 => Layout::Pl,
+        0x0405 => Layout::Cz,
+        0x040E => Layout::Hu,
+        _ => Layout::Other,
+    };
+    (layout, format!("win32:0x{lang_id:04x}"))
+}
+
+pub fn start(recorder: Recorder, on_use: impl Fn(&str, &str, &str) + Send + 'static) {
     if RECORDER.set(recorder).is_err() {
         return;
     }
@@ -133,7 +168,7 @@ pub fn start(recorder: Recorder, on_use: impl Fn(&str, &str) + Send + 'static) {
                 let exe = foreground_exe().unwrap_or_default();
                 let family = rec.family_of_exe(&exe).to_string();
                 if let Some(action) = rec.action_for(&chord, &family) {
-                    on_use(&family, action);
+                    on_use(&family, action, &chord);
                 }
             }
         })
@@ -175,7 +210,7 @@ mod tests {
     #[test]
     fn hook_installs_and_counts_only_physical_habit_chords_once() {
         let (tx, rx) = mpsc::channel::<(String, String)>();
-        start(Recorder::new(library::get()), move |family, action| {
+        start(Recorder::new(library::get()), move |family, action, _chord| {
             let _ = tx.send((family.to_string(), action.to_string()));
         });
         let t = Instant::now();

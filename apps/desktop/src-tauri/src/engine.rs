@@ -198,7 +198,8 @@ impl Engine {
     pub fn keyboard(&self) -> Keyboard {
         match self.settings.read().unwrap().keyboard.as_str() {
             "pc" => Keyboard::Pc,
-            _ => Keyboard::Apple,
+            "apple" => Keyboard::Apple,
+            _ => if cfg!(windows) { Keyboard::Pc } else { Keyboard::Apple },
         }
     }
 
@@ -227,6 +228,29 @@ impl Engine {
             self.notify();
         }
         ok
+    }
+
+    #[cfg(windows)]
+    pub fn set_win_key_check(&self, family: &str, action: &str, chord: &str) {
+        let lib = library::get();
+        let fam_label = lib.family(family).map(|f| f.label.clone()).unwrap_or_else(|| family.to_string());
+        let layout = self.layout();
+        let keyboard = self.keyboard();
+        let mac_str = lib
+            .habit_rules
+            .iter()
+            .find(|r| r.action == action && r.layout == layout && r.keyboard == keyboard)
+            .or_else(|| lib.habit_rules.iter().find(|r| r.action == action))
+            .map(|r| format_mac(&r.mac[0]))
+            .unwrap_or_default();
+        let win_str = format_windows(chord);
+        let meaning = if mac_str.is_empty() {
+            lib.action(action).map(|a| format!("habit {win_str} ({})", a.label))
+        } else {
+            Some(format!("habit {win_str} → {mac_str}"))
+        };
+        *self.key_check.lock().unwrap() = Some(KeyCheck { pressed: win_str, family: fam_label, meaning });
+        self.notify();
     }
 
     fn exclusion(&self, family: &str, settings: &Settings) -> Exclusion {
@@ -473,6 +497,7 @@ mod tests {
     fn engine() -> &'static Engine {
         let e: &'static Engine = Box::leak(Box::new(Engine::new(Store::in_memory().unwrap())));
         *e.detected_layout.write().unwrap() = (Layout::De, "com.apple.keylayout.Austrian".into());
+        e.settings.write().unwrap().keyboard = "apple".into();
         e
     }
 

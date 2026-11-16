@@ -66,7 +66,7 @@ export default function App() {
           <NavItem id="settings" view={view} setView={setView} icon="⚙︎" label="Settings" />
           <NavItem id="onboarding" view={view} setView={setView} icon="✦" label="Setup" />
         </nav>
-        <StatusPill status={status} />
+        <StatusPill status={status} onSettings={() => setView("settings")} />
       </aside>
       <main className="content">
         <div className="drag top" data-tauri-drag-region />
@@ -92,22 +92,30 @@ function pausedText(until: number) {
   return new Date(until * 1000).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" });
 }
 
-function StatusPill({ status }: { status: Status }) {
+function StatusPill({ status, onSettings }: { status: Status; onSettings: () => void }) {
+  const isWin = status.platform === "windows";
   let tone = "ok";
-  let text = "Watching";
+  let text = isWin ? "Recording" : "Watching";
+  let clickable = false;
   if (status.pausedUntil) {
     tone = "warn";
     text = `Paused until ${pausedText(status.pausedUntil)}`;
   } else if (status.tap === 0) {
     tone = "bad";
-    text = "Needs permission";
+    text = isWin ? "Hook not active" : "Needs permission";
+    clickable = true;
   } else if (status.tap === 1) {
     tone = "warn";
     text = "Guard off";
   }
   return (
     <div className="pill-wrap">
-      <div className={`pill ${tone}`}>
+      <div
+        className={`pill ${tone}`}
+        onClick={clickable ? onSettings : undefined}
+        style={clickable ? { cursor: "pointer" } : undefined}
+        title={clickable ? "Open Settings" : undefined}
+      >
         <i />
         {text}
       </div>
@@ -128,6 +136,19 @@ function StatusPill({ status }: { status: Status }) {
 function Onboarding(p: { status: Status; settings: Settings; save: (s: Partial<Settings>) => Promise<void>; done: () => void }) {
   const [step, setStep] = useState(0);
   const { status } = p;
+  const isWin = status.platform === "windows";
+  const steps = isWin
+    ? [
+        { id: 0, label: "What it sees" },
+        { id: 2, label: "Your keyboard" },
+        { id: 3, label: "Try it" },
+      ]
+    : [
+        { id: 0, label: "What it sees" },
+        { id: 1, label: "Permissions" },
+        { id: 2, label: "Your keyboard" },
+        { id: 3, label: "Try it" },
+      ];
   const test = status.keyCheck;
   const passed = !!test?.meaning?.startsWith("habit");
   const finish = async () => {
@@ -137,20 +158,22 @@ function Onboarding(p: { status: Status; settings: Settings; save: (s: Partial<S
   return (
     <div className="page onboarding">
       <ol className="steps">
-        {["What it sees", "Permissions", "Your keyboard", "Try it"].map((s, i) => (
-          <li key={s} className={i === step ? "on" : i < step ? "past" : ""} onClick={() => setStep(i)}>
+        {steps.map((s, i) => (
+          <li key={s.label} className={s.id === step ? "on" : s.id < step ? "past" : ""} onClick={() => setStep(s.id)}>
             <b>{i + 1}</b>
-            {s}
+            {s.label}
           </li>
         ))}
       </ol>
 
       {step === 0 && (
         <section className="card hero-card">
-          <h1>Your Windows habits, caught the moment they slip.</h1>
+          <h1>{isWin ? "Your Windows shortcuts, counted for your Mac." : "Your Windows habits, caught the moment they slip."}</h1>
           <p className="lede">
-            When you press a Windows shortcut on this Mac, cmdnudge shows the Mac one in the corner. Your key still goes through. The one
-            exception: right ⌘Q from the AltGr+Q “@” habit is stopped before it quits your app.
+            {isWin
+              ? "While you work on Windows, cmdnudge quietly counts which shortcuts you use so your Mac knows which habits to prioritize first. No popups, nothing blocked."
+              : "When you press a Windows shortcut on this Mac, cmdnudge shows the Mac one in the corner. Your key still goes through. The one exception: right ⌘Q from the AltGr+Q “@” habit is stopped before it quits your app."}
+            {/* macOS lede moved above */}
           </p>
           <div className="never">
             <h3>What cmdnudge never records</h3>
@@ -166,7 +189,7 @@ function Onboarding(p: { status: Status; settings: Settings; save: (s: Partial<S
             </p>
           </div>
           <div className="row end">
-            <button className="btn primary" onClick={() => setStep(1)}>Continue</button>
+            <button className="btn primary" onClick={() => setStep(isWin ? 2 : 1)}>Continue</button>
           </div>
         </section>
       )}
@@ -205,8 +228,8 @@ function Onboarding(p: { status: Status; settings: Settings; save: (s: Partial<S
             so the German “@” habit (AltGr+Q) quits apps.
           </p>
           <div className="choice-grid">
-            <Choice on={p.settings.keyboard !== "pc"} onClick={() => p.save({ keyboard: "apple" })} title="Apple keyboard" sub="MacBook, Magic Keyboard. Bottom row: fn ⌃ ⌥ ⌘" />
-            <Choice on={p.settings.keyboard === "pc"} onClick={() => p.save({ keyboard: "pc" })} title="PC keyboard" sub="Bottom row: Ctrl Win Alt. Win acts as ⌘" />
+            <Choice on={status.keyboard === "apple"} onClick={() => p.save({ keyboard: "apple" })} title="Apple keyboard" sub="MacBook, Magic Keyboard. Bottom row: fn ⌃ ⌥ ⌘" />
+            <Choice on={status.keyboard === "pc"} onClick={() => p.save({ keyboard: "pc" })} title="PC keyboard" sub="Bottom row: Ctrl Win Alt. Win acts as ⌘" />
           </div>
           <div className="kv">
             <span>Layout in use</span>
@@ -221,7 +244,7 @@ function Onboarding(p: { status: Status; settings: Settings; save: (s: Partial<S
             ))}
           </div>
           <div className="row end">
-            <button className="btn ghost" onClick={() => setStep(1)}>Back</button>
+            <button className="btn ghost" onClick={() => setStep(isWin ? 0 : 1)}>Back</button>
             <button className="btn primary" onClick={() => setStep(3)}>Continue</button>
           </div>
         </section>
@@ -230,7 +253,11 @@ function Onboarding(p: { status: Status; settings: Settings; save: (s: Partial<S
       {step === 3 && (
         <section className="card">
           <h2>Press Ctrl+C now</h2>
-          <p className="muted">The Windows way, with the Control key. A hint should appear at the bottom right of your screen.</p>
+          <p className="muted">
+            {isWin
+              ? "The Windows way, with the Control key. It will appear below as a recognized habit."
+              : "The Windows way, with the Control key. A hint should appear at the bottom right of your screen."}
+          </p>
           <div className={`tester ${passed ? "pass" : ""}`}>
             {test ? (
               <>
@@ -242,8 +269,9 @@ function Onboarding(p: { status: Status; settings: Settings; save: (s: Partial<S
             )}
           </div>
           <div className="row">
-            <button className="btn ghost" onClick={() => api.testToast("hint")}>Show a sample hint</button>
-            <button className="btn ghost" onClick={() => api.testToast("guard")}>Show the ⌘Q guard</button>
+            {!isWin && <button className="btn ghost" onClick={() => api.testToast("hint")}>Show a sample hint</button>}
+            {!isWin && <button className="btn ghost" onClick={() => api.testToast("guard")}>Show the ⌘Q guard</button>}
+            {/* guard button handled above */}
             <span className="grow" />
             <button className="btn primary" onClick={finish}>{passed ? "Done. Work as usual" : "Finish"}</button>
           </div>
@@ -276,7 +304,30 @@ function Choice(p: { on: boolean; onClick: () => void; title: string; sub: strin
 }
 
 function layoutName(l: string) {
-  return ({ us: "US", de: "German", at: "Austrian" } as Record<string, string>)[l] ?? l;
+  return (
+    ({
+      us: "US",
+      de: "German",
+      at: "Austrian",
+      "ch-de": "Swiss German",
+      "ch-fr": "Swiss French",
+      uk: "UK (Apple)",
+      "uk-pc": "UK (PC)",
+      fr: "French (Apple)",
+      "fr-pc": "French (PC)",
+      be: "Belgian",
+      es: "Spanish",
+      it: "Italian",
+      pt: "Portuguese",
+      se: "Swedish",
+      no: "Norwegian",
+      dk: "Danish",
+      pl: "Polish",
+      cz: "Czech",
+      hu: "Hungarian",
+      other: "Other",
+    } as Record<string, string>)[l] ?? l
+  );
 }
 
 /* ---------- Stats ---------------------------------------------------------------------- */
@@ -284,6 +335,67 @@ function layoutName(l: string) {
 function StatsView({ status }: { status: Status }) {
   const [stats] = useLive<Stats>(api.stats, 3000);
   if (!stats) return null;
+  const isWin = status.platform === "windows";
+  const today = stats.daily.filter((d) => d.day === stats.today);
+  const days = lastDays(14, stats.today);
+  const per = (day: string, kind: string) => stats.daily.filter((d) => d.day === day && d.kind === kind).reduce((s, d) => s + d.count, 0);
+
+  if (isWin) {
+    const winToday = today.filter((d) => d.kind === "win_use").reduce((s, d) => s + d.count, 0);
+    const recorded = stats.actions.filter((a) => a.winUses > 0).sort((a, b) => b.winUses - a.winUses);
+    const max = Math.max(1, ...days.map((d) => per(d, "win_use")));
+    return (
+      <div className="page">
+        <header className="page-head">
+          <h1>Your habits</h1>
+          <p className="muted">Counted on this PC, per day. Sync to your Mac when ready.</p>
+        </header>
+        <div className="tiles">
+          <Tile n={winToday} label="Windows shortcuts today" tone="warm" />
+          <Tile n={recorded.length} label="Distinct habits" tone="cool" />
+        </div>
+        {recorded.length === 0 ? (
+          <div className="empty card">
+            <div className="empty-icon" aria-hidden>⌘</div>
+            <h3>Nothing yet. Work as usual.</h3>
+            <p className="muted">The first time you press a Windows shortcut from the library, it shows up here.</p>
+          </div>
+        ) : (
+          <>
+            <section className="card">
+              <h2>Recorded on this PC</h2>
+              <p className="muted">Your Mac uses these counts to rank which habits to coach first.</p>
+              <ul className="habits">
+                {recorded.slice(0, 20).map((a) => (
+                  <li key={a.actionId}>
+                    <span className="k win">{a.windows}</span>
+                    <span className="arrow">→</span>
+                    <span className="k mac">{a.mac}</span>
+                    <span className="habit-label">{a.label}</span>
+                    <span className="habit-count">{a.winUses}×</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+            <section className="card">
+              <h2>Last 14 days</h2>
+              <div className="bars" role="img" aria-label="Windows shortcuts per day">
+                {days.map((d) => (
+                  <div className="bar" key={d} title={`${d}: ${per(d, "win_use")} Windows shortcuts`}>
+                    <i className="miss" style={{ height: `${(per(d, "win_use") / max) * 100}%` }} />
+                    <span>{d.slice(8)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="legend">
+                <span><i className="miss" /> Windows shortcuts</span>
+              </div>
+            </section>
+          </>
+        )}
+      </div>
+    );
+  }
   // Once a Windows computer syncs its counts (#17), the habits it really uses most come first:
   // those are the ones the hands keep bringing over.
   const fromWindows = stats.actions.some((a) => a.winUses > 0);
@@ -292,11 +404,8 @@ function StatsView({ status }: { status: Status }) {
     .sort((a, b) => (fromWindows ? b.winUses - a.winUses : 0) || b.misses - a.misses)
     .slice(0, 10);
   const mastered = stats.actions.filter((a) => a.mastered);
-  const today = stats.daily.filter((d) => d.day === stats.today);
   const missesToday = today.filter((d) => d.kind === "habit_miss").reduce((s, d) => s + d.count, 0);
   const rightToday = today.filter((d) => d.kind === "mac_correct").reduce((s, d) => s + d.count, 0);
-  const days = lastDays(14, stats.today);
-  const per = (day: string, kind: string) => stats.daily.filter((d) => d.day === day && d.kind === kind).reduce((s, d) => s + d.count, 0);
   const max = Math.max(1, ...days.map((d) => Math.max(per(d, "habit_miss"), per(d, "mac_correct"))));
   const empty = stats.actions.length === 0;
 
@@ -587,6 +696,7 @@ function SyncCard() {
 
 function SettingsView(p: { status: Status; settings: Settings; save: (s: Partial<Settings>) => Promise<void>; lib: Library }) {
   const { status, settings, save, lib } = p;
+  const isWin = status.platform === "windows";
   const [raw, setRaw] = useState<RawRows | null>(null);
   const [note, setNote] = useState("");
   const [armed, setArmed] = useState(false);
@@ -598,11 +708,18 @@ function SettingsView(p: { status: Status; settings: Settings; save: (s: Partial
       </header>
 
       <section className="card">
-        <h2>Permissions</h2>
-        <Perm ok={status.inputMonitoring || status.tap > 0} title="Input Monitoring" why="Needed to notice key combinations." onGrant={() => api.requestPermission("input")} />
-        <Perm ok={status.accessibility} title="Accessibility" why="Needed for the guard and translate mode." onGrant={() => api.requestPermission("accessibility")} />
+        <h2>{isWin ? "Status" : "Permissions"}</h2>
+        {isWin ? (
+          <Perm ok={status.tap > 0} title="Windows keyboard hook" why="Counts library Windows shortcuts in the background. No special permission needed on Windows." onGrant={() => {}} />
+        ) : (
+          <>
+            {/* macOS perms handled above */}
+            {/* macOS ax perm handled above */}
+          </>
+        )}
       </section>
 
+      {!isWin && (
       <section className="card">
         <h2>Learning mode</h2>
         <div className="choice-grid three">
@@ -648,6 +765,7 @@ function SettingsView(p: { status: Status; settings: Settings; save: (s: Partial
           </label>
         </div>
       </section>
+      )}
 
       <section className="card">
         <h2>Keyboard and layout</h2>
@@ -655,7 +773,7 @@ function SettingsView(p: { status: Status; settings: Settings; save: (s: Partial
           <label className="inline">
             Keyboard
             <select value={settings.keyboard} onChange={(e) => save({ keyboard: e.target.value as Settings["keyboard"] })}>
-              <option value="auto">Apple (built in)</option>
+              <option value="auto">{isWin ? "PC (automatic)" : "Apple (built in)"}</option>
               <option value="apple">Apple keyboard</option>
               <option value="pc">PC keyboard</option>
             </select>
@@ -740,7 +858,7 @@ function SettingsView(p: { status: Status; settings: Settings; save: (s: Partial
       <section className="card">
         <h2>What is stored</h2>
         <p className="muted small">
-          One SQLite file in ~/Library/Application Support/com.cmdnudge.app. These are all of its rows. Nothing is sent anywhere unless you switch on one of the syncs above, and then only these counters. The second table counts, per app, Windows shortcuts you used without switching to the Mac way afterwards, so cmdnudge can ask whether you mean them. It never leaves this Mac.
+          One SQLite file in {isWin ? "%APPDATA%\\com.cmdnudge.app" : "~/Library/Application Support/com.cmdnudge.app"}. These are all of its rows. Nothing is sent anywhere unless you switch on one of the syncs above, and then only these counters. The second table counts, per app, Windows shortcuts you used without switching to the Mac way afterwards, so cmdnudge can ask whether you mean them. It never leaves this Mac.
         </p>
         <div className="row">
           <button className="btn" onClick={() => api.raw().then(setRaw)}>{raw ? "Refresh" : "Show the raw rows"}</button>
@@ -767,7 +885,7 @@ function SettingsView(p: { status: Status; settings: Settings; save: (s: Partial
               <tbody>
                 {raw.counters.map((r) => (
                   <tr key={`${r.device_id}${r.app_family}${r.action_id}${r.kind}`}>
-                    <td>{r.device_id === raw.deviceId ? "this Mac" : r.device_id}</td><td>{r.app_family}</td><td>{r.action_id}</td><td>{r.kind}</td><td>{r.count}</td><td>{r.first_seen_day}</td><td>{r.last_seen_day}</td>
+                    <td>{r.device_id === raw.deviceId ? (isWin ? "this PC" : "this Mac") : r.device_id}</td><td>{r.app_family}</td><td>{r.action_id}</td><td>{r.kind}</td><td>{r.count}</td><td>{r.first_seen_day}</td><td>{r.last_seen_day}</td>
                   </tr>
                 ))}
                 {raw.counters.length === 0 && <tr><td colSpan={7} className="muted">No rows yet.</td></tr>}
