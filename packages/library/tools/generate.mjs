@@ -3,6 +3,7 @@
 // The interesting part is habitRules: for every habit, layout and keyboard type it works out
 // which chord the Mac actually receives when Windows muscle memory presses that habit,
 // and drops the rules that would be wrong or noisy (see `reason` in `dropped`).
+import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -114,9 +115,36 @@ export function build() {
   };
 }
 
+// The shareable package (#42): every action with its Mac chords, for other apps to read. Data only,
+// under the MIT licence in share/LICENSE. Versioned by share/manifest.json; see share/README.md.
+export const SHARE_VERSION = '1.0.0';
+
+export function buildShare(lib) {
+  const macChords = new Map();
+  for (const w of lib.macWays) {
+    if (!macChords.has(w.action)) macChords.set(w.action, new Set());
+    macChords.get(w.action).add(w.chord);
+  }
+  const actions = lib.actions.map((a) => ({
+    id: a.id, label: a.label, category: a.category, destructive: a.destructive,
+    mac: [...(macChords.get(a.id) ?? [])].sort(),
+  }));
+  const actionsText = JSON.stringify({ schema: 1, actions }, null, 2) + '\n';
+  const manifest = {
+    schema: 1, name: 'cmdnudge-action-library', version: SHARE_VERSION, license: 'MIT',
+    actions: 'actions.json', actionCount: actions.length,
+    sha256: createHash('sha256').update(actionsText).digest('hex'),
+  };
+  return { manifest, actionsText };
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   const lib = build();
   mkdirSync(join(root, 'dist'), { recursive: true });
   writeFileSync(join(root, 'dist', 'library.json'), JSON.stringify(lib) + '\n');
+  const share = buildShare(lib);
+  mkdirSync(join(root, 'share'), { recursive: true });
+  writeFileSync(join(root, 'share', 'actions.json'), share.actionsText);
+  writeFileSync(join(root, 'share', 'manifest.json'), JSON.stringify(share.manifest, null, 2) + '\n');
   console.log(`library: ${lib.habits.length} habits, ${lib.actions.length} actions, ${lib.habitRules.length} rules, ${lib.dropped.length} dropped, ${lib.macWays.length} mac ways`);
 }

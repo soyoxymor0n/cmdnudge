@@ -65,7 +65,7 @@
 ### Shortcut library
 
 - **[P0] Habit map** for about 50 universal habits (system + Finder/Explorer + browsers) with US/DE/AT variants, sources and verified dates.
-- **[P1] Action library shared with Mac Mouse Fix NG**, as a separate data package that MMF NG also reads ([`08-shortcut-library-and-habit-map.md`](08-shortcut-library-and-habit-map.md)). Licence question C5.
+- **[P1] Action library shared with Mac Mouse Fix NG**, as a separate data package that MMF NG also reads ([`08-shortcut-library-and-habit-map.md`](08-shortcut-library-and-habit-map.md)). Licence: MIT, data only (decided in the interview, #42). The cmdnudge side is built: `packages/library/share/` (manifest with sha256, every action with its Mac chords, version 1.0.0), validated by `npm run library:check`. The Mac Mouse Fix side reads it in its own repo and needs its own issue there.
 - **[P1] Live menu reading** of the frontmost Mac app for app-specific Mac shortcuts.
 
 ### Web

@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "name": "cmdnudge-action-library",
+  "version": "1.0.0",
+  "license": "MIT",
+  "actions": "actions.json",
+  "actionCount": 96,
+  "sha256": "0d1cd6eb440e1721ae5d3f921442a3d7ba8054e99436f327048b124af7fc3c4a"
+}
