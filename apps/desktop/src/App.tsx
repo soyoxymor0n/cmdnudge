@@ -107,6 +107,9 @@ function StatusPill({ status, onSettings }: { status: Status; onSettings: () => 
   } else if (status.tap === 1) {
     tone = "warn";
     text = "Guard off";
+  } else if (status.secureInput) {
+    tone = "warn";
+    text = "Paused while a password field is active";
   }
   return (
     <div className="pill-wrap">

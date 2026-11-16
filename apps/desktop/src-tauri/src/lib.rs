@@ -507,24 +507,71 @@ fn show_window(app: &AppHandle, view: Option<&str>) {
 
 fn status_line() -> String {
     let s = engine().settings.read().unwrap().clone();
-    if let Some(t) = s.paused_until.filter(|t| *t > engine::now()) {
+    #[cfg(target_os = "macos")]
+    let (tap, secure) = (
+        mac::tap::TAP_STATE.load(std::sync::atomic::Ordering::Relaxed),
+        mac::context::secure_input(),
+    );
+    #[cfg(not(target_os = "macos"))]
+    let (tap, secure) = (2, false);
+    status_text(s.paused_until, engine::now(), tap, secure)
+}
+
+/// The menu bar's status line, as plain text. Kept free of platform calls so the wording is
+/// unit-tested. While a password field has secure input on, the tap passes every event through
+/// untouched (`mac/tap.rs`), so the line says why nothing is hinted.
+fn status_text(paused_until: Option<i64>, now: i64, tap: u8, secure: bool) -> String {
+    if let Some(t) = paused_until.filter(|t| *t > now) {
         let local = chrono::DateTime::from_timestamp(t, 0)
             .map(|d| d.with_timezone(&chrono::Local).format("%a %H:%M").to_string())
             .unwrap_or_default();
         return format!("Paused until {local}");
     }
-    #[cfg(target_os = "macos")]
-    {
-        match mac::tap::TAP_STATE.load(std::sync::atomic::Ordering::Relaxed) {
-            0 => return "Needs Input Monitoring permission".into(),
-            1 => return "Watching (guard off: needs Accessibility)".into(),
-            _ => {}
-        }
+    match tap {
+        0 => return "Needs Input Monitoring permission".into(),
+        1 => return "Watching (guard off: needs Accessibility)".into(),
+        _ => {}
+    }
+    if secure {
+        return PASSWORD_PAUSE.into();
     }
     #[cfg(windows)]
     return "Recording Windows shortcuts".into();
     #[cfg(not(windows))]
     "Watching for Windows habits".into()
+}
+
+const PASSWORD_PAUSE: &str = "Paused while a password field is active";
+
+#[cfg(test)]
+mod status_text_tests {
+    use super::{status_text, PASSWORD_PAUSE};
+
+    const NOW: i64 = 1_000_000;
+
+    #[test]
+    fn password_field_says_why_nothing_is_hinted() {
+        assert_eq!(status_text(None, NOW, 2, true), PASSWORD_PAUSE);
+        assert_eq!(PASSWORD_PAUSE, "Paused while a password field is active");
+    }
+
+    #[test]
+    fn no_password_field_means_plain_watching() {
+        assert_eq!(status_text(None, NOW, 2, false), "Watching for Windows habits");
+    }
+
+    #[test]
+    fn a_manual_pause_still_wins_over_the_password_line() {
+        let text = status_text(Some(NOW + 600), NOW, 2, true);
+        assert!(text.starts_with("Paused until "), "got {text}");
+        assert_ne!(text, PASSWORD_PAUSE);
+    }
+
+    #[test]
+    fn missing_permissions_still_win_over_the_password_line() {
+        assert_eq!(status_text(None, NOW, 0, true), "Needs Input Monitoring permission");
+        assert_eq!(status_text(None, NOW, 1, true), "Watching (guard off: needs Accessibility)");
+    }
 }
 
 fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
