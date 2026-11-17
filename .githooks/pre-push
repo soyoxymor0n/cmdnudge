@@ -118,6 +118,8 @@ elif [ -f tools/check-commit-issue-refs.mjs ]; then
 		exit 1
 	fi
 fi
+# Label moves (on-alpha/on-beta/released) run here, not in CI: detached, waits for the push to land, never blocks it.
+[ -f tools/issue-status.mjs ] && { node tools/issue-status.mjs --from-pre-push < "$_id_in" >/dev/null 2>&1 || true; }
 exec < "$_id_in"
 rm -f "$_id_in" 2>/dev/null
 unset _id_in
