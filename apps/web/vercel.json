@@ -6,7 +6,7 @@
   "outputDirectory": "dist",
   "cleanUrls": true,
   "functions": { "api/*.mjs": { "includeFiles": "dist/library.json", "maxDuration": 10 } },
-  "git": { "deploymentEnabled": { "**": false, "beta": true, "main": true } },
+  "git": { "deploymentEnabled": { "**": false, "alpha": false, "beta": true, "main": true } },
   "headers": [
     { "source": "/(.*)", "headers": [
       { "key": "X-Content-Type-Options", "value": "nosniff" },

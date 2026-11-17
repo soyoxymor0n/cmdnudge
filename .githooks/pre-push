@@ -1,4 +1,104 @@
 #!/bin/sh
+# >>> branch-model (managed by blueprint tools/add-branch-model.mjs) >>>
+# blueprint#370: alpha = trunk (never deploys), beta = closed test, main = production.
+# Rewrites the push lines the hook body below reads (see tools/add-branch-model.mjs).
+# git exports repo-locating vars to hooks; the cwd is the worktree root, so git rediscovers everything,
+# and the npm test below must not inherit them (fixture repos in temp dirs).
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_PREFIX
+_bm_in=$(mktemp 2>/dev/null || echo ".git/branch-model-in.$$")
+_bm_out=$(mktemp 2>/dev/null || echo ".git/branch-model-out.$$")
+cat > "$_bm_in"
+: > "$_bm_out"
+_bm_zero=0000000000000000000000000000000000000000
+_bm_is_zero() { case "$1" in *[!0]*) return 1 ;; *) return 0 ;; esac; }
+_bm_fail() { echo "pre-push: $1" >&2; rm -f "$_bm_in" "$_bm_out"; exit 1; }
+_bm_moved=0
+if git rev-parse -q --verify refs/remotes/origin/alpha >/dev/null 2>&1 || grep -q ' refs/heads/alpha ' "$_bm_in"; then
+	_bm_moved=1
+fi
+if [ "$_bm_moved" = "1" ] && [ "$PRE_PUSH_SKIP_TESTS" = "1" ] && [ -z "$PRE_PUSH_SKIP_REASON" ]; then
+	_bm_fail "PRE_PUSH_SKIP_TESTS=1 needs PRE_PUSH_SKIP_REASON=<repo>#<issue> (the issue that tracks the red test)."
+fi
+while read -r _bm_lr _bm_ls _bm_rr _bm_rs || [ -n "$_bm_lr" ]; do
+	[ -z "$_bm_lr" ] && continue
+	if [ "$_bm_moved" != "1" ]; then
+		echo "$_bm_lr $_bm_ls $_bm_rr $_bm_rs" >> "$_bm_out"
+		continue
+	fi
+	case "$_bm_rr" in
+	refs/heads/alpha)
+		_bm_is_zero "$_bm_ls" && _bm_fail "refusing to DELETE origin/alpha (the trunk)."
+		if git fetch -q origin alpha 2>/dev/null && _bm_f=$(git rev-parse -q --verify refs/remotes/origin/alpha 2>/dev/null); then
+			if ! git merge-base --is-ancestor "$_bm_f" "$_bm_ls" 2>/dev/null; then
+				_bm_fail "origin/alpha moved since your last fetch - refusing BEFORE running tests.
+  Bring it in first, then push again:  git pull --rebase --autostash origin alpha"
+			fi
+		fi
+		if _bm_is_zero "$_bm_rs"; then
+			_bm_rs=$(git rev-parse -q --verify refs/remotes/origin/beta 2>/dev/null) || _bm_rs=$_bm_zero
+		fi
+		# The body's trunk tier lives under refs/heads/beta: show the trunk push to it under that name.
+		echo "$_bm_lr $_bm_ls refs/heads/beta $_bm_rs" >> "$_bm_out"
+		;;
+	refs/heads/beta)
+		_bm_is_zero "$_bm_ls" && _bm_fail "refusing to DELETE origin/beta (the closed test)."
+		if ! _bm_is_zero "$_bm_rs" && git cat-file -e "$_bm_rs" 2>/dev/null &&
+			! git merge-base --is-ancestor "$_bm_rs" "$_bm_ls" 2>/dev/null; then
+			_bm_fail "refusing NON-FAST-FORWARD push to beta. beta only moves forward, by a promote from alpha."
+		fi
+		if [ "$SHIP_HOTFIX" != "1" ]; then
+			git fetch -q origin alpha 2>/dev/null
+			if ! git merge-base --is-ancestor "$_bm_ls" refs/remotes/origin/alpha 2>/dev/null; then
+				_bm_fail "refusing to promote to beta a commit that is not on origin/alpha.
+  beta is promoted from the trunk: land it on alpha first (git push origin alpha), then /ship test."
+			fi
+		fi
+		if [ "$AUTHOR_CHECK_SKIP" != "1" ]; then
+			_bm_ae=$(git log -1 --format=%ae "$_bm_ls" 2>/dev/null)
+			_bm_ok=0
+			for _bm_a in 156524800+soyoxymor0n@users.noreply.github.com noreply@anthropic.com 41898282+github-actions[bot]@users.noreply.github.com $AUTHOR_CHECK_ALLOW; do
+				[ "$_bm_ae" = "$_bm_a" ] && _bm_ok=1
+			done
+			[ -z "$_bm_ae" ] && _bm_ok=1
+			[ "$_bm_ok" = "1" ] || _bm_fail "the promoted head is authored by $_bm_ae, which Vercel cannot link (deployment BLOCKED).
+  Re-author it on alpha (git commit --allow-empty --reset-author -m 'chore: re-author head [skip vercel]'), then promote."
+		fi
+		if [ "$PRE_PUSH_SKIP_TESTS" = "1" ]; then
+			echo "pre-push: !!! PRE_PUSH_SKIP_TESTS=1 ($PRE_PUSH_SKIP_REASON) - promoting to beta WITHOUT the full suite. !!!" >&2
+		elif [ -f tools/test-stamp.mjs ] && node tools/test-stamp.mjs check "$_bm_ls" </dev/null; then
+			echo "pre-push: this exact tree already passed the FULL suite - promoting to beta without running it again." >&2
+		else
+			[ "$(git rev-parse HEAD)" = "$_bm_ls" ] || _bm_fail "promote to beta: check out the promoted commit first (the full suite runs on the working tree)."
+			_bm_lease=""
+			[ -f tools/machine-lease.mjs ] && _bm_lease=$(node tools/machine-lease.mjs acquire "$(basename "$PWD")" </dev/null)
+			echo "pre-push: running the FULL suite before this promote to beta..." >&2
+			if ! npm test </dev/null; then
+				[ -n "$_bm_lease" ] && node tools/machine-lease.mjs release "$_bm_lease" </dev/null
+				_bm_fail "the full suite failed - refusing to promote to beta. Quarantine or fix the test on alpha first."
+			fi
+			[ -n "$_bm_lease" ] && node tools/machine-lease.mjs release "$_bm_lease" </dev/null
+		fi
+		# Gated here; not handed to the body (its beta case is the trunk tier).
+		;;
+	refs/heads/main)
+		if ! _bm_is_zero "$_bm_ls" && [ "$SHIP_HOTFIX" != "1" ]; then
+			git fetch -q origin beta 2>/dev/null
+			if ! git merge-base --is-ancestor "$_bm_ls" refs/remotes/origin/beta 2>/dev/null; then
+				_bm_fail "refusing to promote to main a commit that is not on origin/beta.
+  main is promoted from the closed test: /ship test first, then /ship release."
+			fi
+		fi
+		echo "$_bm_lr $_bm_ls $_bm_rr $_bm_rs" >> "$_bm_out"
+		;;
+	*)
+		echo "$_bm_lr $_bm_ls $_bm_rr $_bm_rs" >> "$_bm_out"
+		;;
+	esac
+done < "$_bm_in"
+exec < "$_bm_out"
+rm -f "$_bm_in" "$_bm_out" 2>/dev/null
+unset _bm_in _bm_out _bm_lr _bm_ls _bm_rr _bm_rs _bm_f _bm_ae _bm_ok _bm_a _bm_lease
+# <<< branch-model <<<
 # pre-push
 # >>> issue-discipline (managed by blueprint tools/add-issue-discipline.mjs) >>>
 # Refuse a push to beta/main that carries a feat:/fix: commit with no #<issue>.

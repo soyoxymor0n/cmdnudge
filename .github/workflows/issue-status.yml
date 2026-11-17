@@ -1,22 +1,28 @@
 name: issue status
 
-# Two jobs in one, on purpose. GitHub bills every job as at least one whole
-# minute, so the old pair (commit-issue-refs.yml + issue-status.yml, a few
-# seconds of work each) cost two minutes on every push; across the fleet that
-# was a fifth of the account's Actions minutes (2026-10 budget survey).
+# ONE job, and no push trigger (owner decision 2026-11-17). GitHub bills every job as at least one
+# whole minute; the push trigger cost ~1,240 minutes in 14 days across the fleet (28 % of the
+# account). What it did on push now happens locally:
+#   - the #N check on feat:/fix: commits is the pre-push hook (check-commit-issue-refs.mjs --pre-push);
+#   - the label moves (alpha -> on-alpha, beta -> on-beta, main -> released, closes) are
+#     `tools/issue-status.mjs --from-pre-push`, called by the same hook, which waits for the push to
+#     land and then moves the labels with the pusher's own gh login.
 #
-#   pull_request  check that every feat:/fix: commit cites its issue (#N)
-#   push          the same check (this house pushes straight to beta, so the
-#                 push is the backstop for the pre-push hook), and move the
-#                 issues the push mentions: beta -> on-beta (+ close if
-#                 labelled `feature`), main -> released (+ close if NOT
-#                 labelled `feature`). The issue update uses the default
-#                 GITHUB_TOKEN and never fails the build.
+#   pull_request       check that every feat:/fix: commit cites its issue (#N)
+#   workflow_dispatch  manual BACKFILL of the label moves for a range the local run missed
+#                      (inputs: branch alpha|beta|main, range <base>..<head>); default GITHUB_TOKEN
 on:
   pull_request:
-    branches: [beta, main]
-  push:
-    branches: [beta, main]
+    branches: [alpha, beta, main]
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch the range landed on (alpha, beta or main)
+        required: true
+        default: alpha
+      range:
+        description: Git range of the commits to move issues for, <base>..<head>
+        required: true
 
 permissions:
   contents: read
@@ -31,36 +37,19 @@ jobs:
         with:
           fetch-depth: 0
       - name: Update issues
-        # Runs before the check so a refused commit still moves its issues,
-        # exactly as the two separate workflows did.
-        if: github.event_name == 'push'
+        if: github.event_name == 'workflow_dispatch'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
-          BRANCH: ${{ github.ref_name }}
-          BEFORE: ${{ github.event.before }}
-          SHA: ${{ github.sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ inputs.branch }}
+          RANGE: ${{ inputs.range }}
         run: |
-          if echo "$BEFORE" | grep -qE '^0+$' || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
-            range="${SHA}^..${SHA}"
-          else
-            range="${BEFORE}..${SHA}"
-          fi
-          node tools/issue-status.mjs "$BRANCH" "$range" "$(git rev-parse --short "$SHA")" || true
+          node tools/issue-status.mjs --repo "$GITHUB_REPOSITORY" --branch "$BRANCH" --range "$RANGE" || true
           exit 0
       - name: Check commit issue references
+        if: github.event_name == 'pull_request'
         env:
-          EVENT: ${{ github.event_name }}
           BASE_REF: ${{ github.event.pull_request.base.ref }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
-          BEFORE: ${{ github.event.before }}
-          SHA: ${{ github.sha }}
-        run: |
-          if [ "$EVENT" = "pull_request" ]; then
-            range="origin/${BASE_REF}..${PR_HEAD}"
-          elif echo "$BEFORE" | grep -qE '^0+$' || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
-            range="${SHA}^..${SHA}"
-          else
-            range="${BEFORE}..${SHA}"
-          fi
-          node tools/check-commit-issue-refs.mjs "$range"
+        run: node tools/check-commit-issue-refs.mjs "origin/${BASE_REF}..${PR_HEAD}"
