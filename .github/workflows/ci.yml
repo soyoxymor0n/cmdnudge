@@ -1,17 +1,24 @@
 # Checks every push and pull request: habit map, Rust core (filter, matcher, sync), desktop UI types,
 # website build, and the Windows recorder (#17) compiled and tested on Windows.
+# Actions minutes (owner decision 2026-11-17): Linux runs on every push to alpha/beta/main and on pull
+# requests; the macOS (bills 10x) and Windows jobs run only on a version tag, on main and by hand.
+# A push that only touches docs (**.md, docs/**) skips everything.
 name: ci
 
 on:
   push:
-    branches: [beta, main]
+    branches: [alpha, beta, main]
+    tags: ['v*']
+    paths-ignore: ['**.md', 'docs/**']
   pull_request:
+    paths-ignore: ['**.md', 'docs/**']
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -32,6 +39,7 @@ jobs:
         run: node apps/web/build.mjs
 
   desktop:
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -56,6 +64,7 @@ jobs:
   windows:
     # The Windows recorder (#17): builds the app for Windows and runs the Rust tests there
     # (chord mapping, family lookup, sync), so the cfg(windows) hook code cannot rot unseen.
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4

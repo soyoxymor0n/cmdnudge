@@ -8,18 +8,45 @@
 #                 Accessibility granted after an update. Backup: MACSIGN_* in .scaffold-secrets.
 #   ad-hoc        no secrets: every build looks like a new app to macOS.
 # The draft says which one it is; it is never published automatically.
+# By hand, `os` picks the cost: linux (default) runs only the Linux checks, no installer and no draft;
+# all builds the Mac and Windows installers and drafts the release. A tag push always builds all.
 name: release
 
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      os:
+        description: 'linux = checks only on Linux (cheap); all = Mac and Windows installers plus the draft release'
+        type: choice
+        options: [linux, all]
+        default: linux
 
 permissions:
   contents: write
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  linux:
+    # The cheap test release: the habit map and the generated library.json, on one Linux runner.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm test
+      - name: Generated library.json is up to date
+        run: |
+          npm run library
+          git diff --exit-code packages/library/dist/library.json
+
   mac:
+    if: github.event_name == 'push' || inputs.os == 'all'
     runs-on: macos-latest
     env:
       APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -119,6 +146,7 @@ jobs:
 
   windows:
     # Unsigned until a code-signing certificate exists (#25): SmartScreen asks "Run anyway".
+    if: github.event_name == 'push' || inputs.os == 'all'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -149,6 +177,7 @@ jobs:
 
   release:
     needs: [mac, windows]
+    if: needs.mac.result == 'success' && needs.windows.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
