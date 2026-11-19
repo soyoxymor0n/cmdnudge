@@ -27,7 +27,8 @@ The run works until this holds. It never stops early for a choice it can make it
 > Every feature, fix and decision-backed change from the sources in section 3 is implemented, tested and committed
 > on `beta`, except items that need something only the owner can do (promote or release, spend above the cap, an
 > account or secret the owner must create). Each stand-in is logged in the decisions document. The app-walk has run
-> and its fixes are committed. One push to `beta` per repo has been made at the end. Stop when this holds, or when a
+> and its fixes are committed, and every screen of an app that has `npm run check:load` is inside its load budget
+> (`loading-instruction.md`), or the remaining gap is a `todo` issue with its measured breakdown. One push to `beta` per repo has been made at the end. Stop when this holds, or when a
 > stop rule in section 13 ends the run.
 
 The done-condition is written out in full, so the run does not depend on whether the host has a native `/goal`
@@ -139,6 +140,10 @@ The run decides and goes on. Nothing waits for the morning except the two hard l
 
 - Per phase, in each touched repo: lint, build and `test:affected`, or the repo's named equivalents. A red result
   goes to the red ladder (section 8).
+- A phase that adds or changes a screen, a list or a data read also runs `npm run check:load` (and `check:bundle`)
+  in a repo that has them, and adds the screen to `load-budget.json`. Over budget is not a test failure: it is a
+  tune loop. Take the next lever of `loading-instruction.md` section 3, re-measure, repeat. After three rounds
+  without reaching the budget, record the measured breakdown and the remaining gap as a `todo` issue and continue.
 - The full suite runs once, at the end, before the push.
 - Authz: a negative test for every caller-supplied id and every admin route. A bug fix's repro must be seen to fail
   before the fix.
@@ -148,7 +153,8 @@ The run decides and goes on. Nothing waits for the morning except the two hard l
 
 After the phases and before the push, start the `app-walk` skill with the Skill tool, under its own standard (the skill is model-invocable for this; regsupply D30). The walk's product questions become
 decisions-document stand-ins, not blocking questions. Gaps the walk can fix without a product decision are fixed in
-one more phase and walked again.
+one more phase and walked again. The walk's part G (speed) runs `npm run check:load`; an over-budget screen is a gap
+of class fix and goes through the same tune loop as in section 10.
 
 ## 12. Push
 
@@ -182,8 +188,8 @@ From `issues-as-features` and `/next`, applied as written:
   Report it as "built (local, unpushed)".
 - **Feature doc:** 🔨 while in progress; ✅ once committed, with `file:line` evidence, in the same commit as the code;
   📋 planned.
-- **Push to `beta`:** the `issue-status.yml` workflow (installed by `blueprint/tools/add-issue-discipline.mjs`) swaps
-  `built` for `on-beta` and closes the `feature` issues. The run does not close issues. `fix` issues stay open until
+- **Push to `beta`:** the pre-push hook's local `tools/issue-status.mjs` run (installed by `blueprint/tools/add-issue-discipline.mjs`;
+  no CI job since 2026-11-17) swaps `built` for `on-beta` and closes the `feature` issues. The run does not close issues. `fix` issues stay open until
   the owner closes them.
 - **Promote to `main`** (owner): `released`.
 - **Repos without `issue-discipline`:** nothing here is automatic. The morning sync moves the labels and says so.

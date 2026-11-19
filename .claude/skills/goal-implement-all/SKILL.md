@@ -92,6 +92,9 @@ Stop after step 5 in `plan` mode and report the plan.
    (agent communication) or start one, after filing a GitHub issue in that repo with the exact change and a `needed-by: <this repo>#N` line in its body. Its work is
    committed on that repo's `beta` and never pushed here.
 5. **Check.** Read the diff yourself. Run the repo's lint, build and `test:affected`. A bug fix's repro must fail first.
+   A phase that touches a screen, a list or a data read also runs `npm run check:load` (and `check:bundle`) where the
+   repo has them. Over budget: take the next lever of `loading-instruction.md` section 3, re-measure, repeat; after
+   three rounds record the breakdown and the remaining gap as a `todo` issue and continue.
    Authz: a negative test per caller-supplied id.
 6. **Red?** Follow the red ladder (standard section 8): two retries with the failure output and the instruction to fix
    code or tests; one attempt by Opus 5.5 at high effort; then stop. A red phase drops its uncommitted work.
@@ -113,7 +116,8 @@ night, stop buying anything and finish with what you have.
 1. Mark each green phase with a tag `goal/<YYYY-MM-DD>/phase-<N>` on its last commit in each touched repo. Tags stay
    local.
 2. Start the `app-walk` skill with the Skill tool, under its standard. Its product questions become decisions-doc stand-ins. Gaps it can fix without a
-   product decision become one more phase, walked again.
+   product decision become one more phase, walked again. Its part G runs `npm run check:load`; an over-budget screen is
+   a fix gap and goes through the same tune loop as step B5.
 3. Run the full suite once in each touched repo: `npm test` or the repo's equivalent.
 4. In each touched repo, update `CLAUDE-HANDOFF.md` with what this run left: branch, commits, tags, open stand-ins,
    anything not pushed. The shared-tree rule requires it.

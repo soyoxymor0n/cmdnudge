@@ -1,9 +1,26 @@
 {
   "version": 1,
-  "blueprintSha": "c54c3884dd7124aba136cb834d096be77fbe2ff5",
+  "blueprintSha": "4a66777542b1701b00f0e1674904ef32c9c48ff6",
   "files": {
+    "src/shared/core/eurlex/fetch.ts": "a9054fa72865f9e496711f69d0509b220d9b582411f841c982f129e45769a5f2",
     "src/shared/core/http/bodyLimits.ts": "d559c7e5b2512ec5d2d43cfb95722b6b064aa5a4b66398718b76339c395a953c",
+    "src/shared/core/http/hubClient.ts": "0fef849cd7eed7ca027516fb1ff9ab4499fce6fed7e6846d85641bc93c963925",
+    "src/shared/core/http/hubServiceClient.ts": "ccabd1afc847c5bdf0d0eb9d13d65897966782ef2820906f28a3e83e9932f7ef",
+    "src/shared/core/inbox/client.ts": "fddcd893cf081b1f38610b126bfa8d1a505354b5c7d7a3d8ef87d8a9a67d2638",
+    "src/shared/core/inbox/contract.ts": "e6d49006e487c98da0b4d47a3d240432783524a323217cc21c2aa58cd8c2215f",
     "src/shared/core/log/CentralLogger.ts": "67b23987fc47188ea29ea902c6075f824d6c18e3bd74a75346ba095967d31bc2",
-    "src/shared/core/log/clientLogIntake.ts": "afc492ddff5273fa93e45b65266cc55c9b8990d4f9d2eaabb1d9e591c46fb8ae"
+    "src/shared/core/log/clientLogIntake.ts": "afc492ddff5273fa93e45b65266cc55c9b8990d4f9d2eaabb1d9e591c46fb8ae",
+    "src/shared/core/util/singleFlight.ts": "79d740940faefbe4b98d8dd64406e12ac427b786b58e71568543b93e579df011",
+    "src/shared/ui/data/query.ts": "f5b75eaeb814ffa666a39b4437ef55ffe29ca5b7c424b2d2a22d445114fc490f",
+    "src/shared/ui/data/useQuery.ts": "dd19691b45480e3bd4699f7c1480697d96d5cb8e03500322224baf89b989c877",
+    "src/shared/ui/entity-links/EntityLink.tsx": "790fc40e65108ebe82fc0fe78134f15b8e74f5710eaf267cc34b976e980d798d",
+    "src/shared/ui/entity-links/entityLinks.ts": "32f2fc458d11db24e49fea60b54a96f6a1b7ad2bf67033e3614d8e9eb2c45079",
+    "src/shared/ui/hooks/pointerEnv.ts": "b4f2c8e4aa70b5507efc20a0bc23ed095d7223932a1ef189d40fe117ff4a1673",
+    "src/shared/ui/loading/lastKnown.ts": "e30c05d015f8ba277b2a4197ef48b22ccc300ac80457e7251780c9d047eaca56",
+    "src/shared/ui/loading/useAsync.ts": "f52d10820893c77d69698059b256c2d8bc44e88a1800510dded2c060fd699486",
+    "src/shared/ui/overlay/Tooltip.tsx": "f697b726ad72190684d829ce183041dbce4d54fec559fa7a4b875ccc0455b9e0",
+    "src/shared/ui/overlay/TooltipPanel.tsx": "077251ca25dd13c467651e7abdaf326bc8d314245064c14fbc01d9a8b7e2bdd3",
+    "src/shared/ui/overlay/tooltipRichText.tsx": "44a74f53e7c5cf59816bf2d3fdd7607d1ef0669f52fa4389a5759d6414de9b8f",
+    "src/shared/ui/storage/safeStorage.ts": "e48d3788c07b09300998764598edea56607ec6e11ab95448bb224dd5c2ce3d15"
   }
 }
