@@ -21,8 +21,10 @@ import { keyedSingleFlight } from '../util/singleFlight.js';
  *    same URL share one fetch, and the entry is dropped the moment it settles.
  *    There is no cache, so there is no staleness. Writes (any non-GET) are never
  *    shared: two POSTs are two writes.
- *  - A path must start with `/` and resolve on the hub origin. A caller that
- *    builds a path from an id encodes it with `encodeURIComponent`.
+ *  - A path must start with `/` and resolve on the hub origin, with no `.` or `..`
+ *    segment (raw or percent-encoded) and no raw tab, LF or CR: the same rule as
+ *    hubServiceClient.ts. A caller that builds a path from an id encodes it with
+ *    `encodeURIComponent`.
  *
  * Migration list (the call sites this replaces; they move in regmap and
  * regvoice, not here): regmap hub-products, export-window, regpath and
@@ -92,6 +94,23 @@ function errorText(text: string): string | undefined {
   return undefined;
 }
 
+/** Same rule as hubServiceClient.ts (kept in step by hand: that file is vendored into the products). A raw tab, LF or CR is stripped by the URL parser before it resolves dot segments. */
+const URL_STRIPPED_CONTROL = /[\t\n\r]/;
+
+/** True when a path has a `.` or `..` segment, raw or percent-encoded, or a segment that does not decode. */
+function hasDotSegment(path: string): boolean {
+  const pathOnly = path.split(/[?#]/, 1)[0] ?? '';
+  return pathOnly.split('/').some((segment) => {
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(segment);
+    } catch {
+      return true;
+    }
+    return decoded === '.' || decoded === '..';
+  });
+}
+
 export function createHubClient(opts: HubClientOptions): HubClient {
   const timeoutMs = opts.timeoutMs ?? DEFAULT_HUB_TIMEOUT_MS;
   const forbidden = new Set((opts.forbiddenTokens ?? []).filter((t): t is string => typeof t === 'string' && t !== ''));
@@ -147,7 +166,7 @@ export function createHubClient(opts: HubClientOptions): HubClient {
       if (!base) return { ok: false, reason: 'not_configured' };
       if (!req.bearer) return { ok: false, reason: 'no_session' };
       if (forbidden.has(req.bearer)) return { ok: false, reason: 'forbidden_token' };
-      if (!req.path.startsWith('/')) return { ok: false, reason: 'bad_path' };
+      if (!req.path.startsWith('/') || URL_STRIPPED_CONTROL.test(req.path) || hasDotSegment(req.path)) return { ok: false, reason: 'bad_path' };
 
       let origin: string;
       try {

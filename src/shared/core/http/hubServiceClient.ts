@@ -22,8 +22,9 @@ import { keyedSingleFlight } from '../util/singleFlight.js';
  *  - `cache: 'no-store'` and `redirect: 'error'`, and a per-request timeout. The
  *    transport never follows a redirect, so the token never reaches another host.
  *  - A path starts with one `/`, stays on the hub origin, and has no `.` or `..`
- *    segment, raw or percent-encoded. A caller that builds a path from an id
- *    encodes the id with `encodeURIComponent`; an encoded id is always one segment.
+ *    segment, raw or percent-encoded, and no raw tab, LF or CR. A caller that builds
+ *    a path from an id encodes the id with `encodeURIComponent`; an encoded id is
+ *    always one segment.
  *  - The client never throws. Every outcome is a {@link HubServiceResult}.
  *  - ttl and etag, both opt-in per call. `ttlMs` reuses a successful answer for
  *    that long without a call. After the TTL, `etag` revalidates with
@@ -138,6 +139,12 @@ function errorText(text: string): string | undefined {
 }
 
 /**
+ * A raw tab, LF or CR. The URL parser deletes these before it resolves dot segments, so `.<TAB>.` looks like an
+ * ordinary segment here and becomes `..` on the hub. A path that carries one is refused outright.
+ */
+const URL_STRIPPED_CONTROL = /[\t\n\r]/;
+
+/**
  * True when a path has a `.` or `..` segment, raw or percent-encoded. The URL parser would fold such a segment
  * into another route on the hub, and the service token would go with it. A segment that does not decode is refused too.
  */
@@ -187,7 +194,14 @@ export function createHubServiceClient(opts: HubServiceClientOptions): HubServic
     } catch {
       return { ok: false, reason: 'not_configured' };
     }
-    if (typeof path !== 'string' || !path.startsWith('/') || path.startsWith('//') || path.includes('\\') || hasDotSegment(path)) {
+    if (
+      typeof path !== 'string' ||
+      !path.startsWith('/') ||
+      path.startsWith('//') ||
+      path.includes('\\') ||
+      URL_STRIPPED_CONTROL.test(path) ||
+      hasDotSegment(path)
+    ) {
       return { ok: false, reason: 'bad_path' };
     }
     let url: URL;

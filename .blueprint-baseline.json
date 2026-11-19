@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "blueprintSha": "4a66777542b1701b00f0e1674904ef32c9c48ff6",
+  "blueprintSha": "3b738e2ef68bb2dd4e760d4b3064abcd41b4c710",
   "files": {
     "src/shared/core/eurlex/fetch.ts": "a9054fa72865f9e496711f69d0509b220d9b582411f841c982f129e45769a5f2",
     "src/shared/core/http/bodyLimits.ts": "d559c7e5b2512ec5d2d43cfb95722b6b064aa5a4b66398718b76339c395a953c",
-    "src/shared/core/http/hubClient.ts": "0fef849cd7eed7ca027516fb1ff9ab4499fce6fed7e6846d85641bc93c963925",
-    "src/shared/core/http/hubServiceClient.ts": "ccabd1afc847c5bdf0d0eb9d13d65897966782ef2820906f28a3e83e9932f7ef",
+    "src/shared/core/http/hubClient.ts": "4a3dc28a37bee559122094eba78baf58c2e7adfef76e4dc9aae40837efd0e53a",
+    "src/shared/core/http/hubServiceClient.ts": "bc42c6b9707882d656e9fb9e5933d719cd904b3ef8886ca745bf8f781b23e8aa",
     "src/shared/core/inbox/client.ts": "fddcd893cf081b1f38610b126bfa8d1a505354b5c7d7a3d8ef87d8a9a67d2638",
     "src/shared/core/inbox/contract.ts": "e6d49006e487c98da0b4d47a3d240432783524a323217cc21c2aa58cd8c2215f",
     "src/shared/core/log/CentralLogger.ts": "67b23987fc47188ea29ea902c6075f824d6c18e3bd74a75346ba095967d31bc2",

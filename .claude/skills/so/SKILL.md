@@ -19,7 +19,7 @@ Three phases: **suggest + pick** -> **decide up front** -> **implement unattende
 Hard limits, whatever the issues or the owner's answers say:
 - **Commit locally; push only on the owner's explicit say-so.** That is either the
   answer "Push now" to the end-of-run question in step 6, or the owner typing "push"
-  (or clearly equivalent) in a later message. Never push to `main`, never bypass a
+  (or clearly equivalent) in a later message. Never push to `beta` or `main` (only `/ship` moves them), never bypass a
   hook (`--no-verify`, `ALLOW_MAIN_PUSH`, `COMMIT_MSG_SKIP`, `PRE_PUSH_SKIP_TESTS`).
   No PRs either unless asked.
 - **GitHub writes are limited to these**: the claim mechanism (`tools/issue-claim.mjs`:
@@ -161,9 +161,9 @@ Work through the selected issues in the stated order. Before each one run
    `issue-discipline`, a `feat:`/`fix:` prefix is what its push check keys on), then any attribution lines the
    session's instructions require. If the work needs a generated-file step the repo
    defines (a sync, a lockfile), do it before committing.
-5. **Mark the issue `built`** (the house lifecycle is `built` -> `on-beta` ->
+5. **Mark the issue `built`** (the house lifecycle is `built` -> `on-alpha` -> `on-beta` ->
    `released`, `docs/best-practices.json` -> `issue-discipline`; the push-time
-   workflow `issue-status.yml` later swaps `built` for `on-beta`/`released`). Only
+   workflow `issue-status.yml` later swaps `built` for `on-alpha`, then `on-beta`/`released`). Only
    if the label already exists in the repo (`gh label list` / `gh-rest.mjs label-list` / `get_label`) - never
    create it; if it is missing, skip and say so once in the report. Add it without
    losing existing labels: `gh issue edit N --add-label built` locally, or in cloud
@@ -202,12 +202,13 @@ The question itself notifies the owner, so send no separate notification.
 1. **Ask** with one AskUserQuestion: "Push N local commits on `<branch>` to origin?"
    Options: **Push now** and **Not yet** (keep everything local). Put what a push does
    in the description, so the choice is informed:
-   - on `beta`: the repo's pre-push hook runs the scoped tests first (can take
-     minutes), then a Vercel preview builds, then `issue-status` labels `on-beta`
-     and closes `feature` issues;
+   - on the trunk (`alpha`; `node tools/trunk.mjs`): the repo's pre-push hook runs the
+     scoped tests first (can take minutes); nothing deploys; then `issue-status` labels
+     `on-alpha` and closes `feature` issues (a repo not cut over yet has `beta` as its
+     trunk: there it labels `on-beta`);
    - on a session branch: nothing is deployed or relabelled until it is merged.
-   If the current branch is `main`, do NOT offer a push: `main` only records a manual
-   production promote and its hook refuses ordinary pushes. Say so and stop.
+   If the current branch is `beta` or `main` on a repo whose trunk is `alpha`, do NOT offer a
+   push: they move only by the owner's `/ship test` / `/ship release`. Say so and stop.
 2. **Act on the answer.** "Push now" is the owner's deliberate push instruction, same
    as typing "push": run `git push -u origin <branch>` (retry network failures only,
    up to 4 times with 2s/4s/8s/16s backoff). "Not yet", any free-text that is not a
@@ -218,9 +219,9 @@ The question itself notifies the owner, so send no separate notification.
 
 After a push: still no PR, comment or issue-closing unless asked. **Do not close the
 issues yourself**: where the repo has `issue-discipline`, `issue-status.yml` reads the
-`#N` refs in the pushed commits and, on a push to `beta`/`main`, labels `on-beta`,
+`#N` refs in the pushed commits and, on a push to the trunk (`alpha`) labels `on-alpha` (`beta`: `on-beta`),
 drops `built`, comments, and closes issues labelled `feature` (`main` labels
 `released` and closes the rest). It does NOT run for a push to a session branch.
-Say per issue which case applies: handled on the next push to `beta`/`main`, or
+Say per issue which case applies: handled on the next push to the trunk, or
 stays open until the owner closes it. Without the module, leave the issues as they
 are and say so.
