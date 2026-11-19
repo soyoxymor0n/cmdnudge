@@ -124,7 +124,7 @@ export function parseArgs(argv) {
 
 /** Real dependencies; tests inject fakes. */
 const realDeps = (repo) => ({
-  log: (range) => execFileSync('git', ['log', '--format=%B%x1e', range], { encoding: 'utf8' }).split('\x1e'),
+  log: (range) => execFileSync('git', ['log', '--format=%B%x1e', range], { encoding: 'utf8', windowsHide: true }).split('\x1e'),
   ensureLabels: () => ensureLabels(repo),
   view: (number) => gh('issue-view', () => issueView({ number, repo })),
   edit: (o) => gh('issue-edit', () => issueEdit({ ...o, repo })),
@@ -163,7 +163,7 @@ export async function waitForPush({ branch, sha, lsRemote, isAncestor = () => fa
   return false;
 }
 
-const git = (...a) => execFileSync('git', a, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+const git = (...a) => execFileSync('git', a, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true }).trim();
 const hasCommit = (sha) => { try { git('cat-file', '-e', `${sha}^{commit}`); return true; } catch { return false; } };
 const lsRemote = (branch) => { try { return git('ls-remote', 'origin', `refs/heads/${branch}`).split(/\s+/)[0] || null; } catch { return null; } };
 const isAncestor = (a, b) => { try { git('merge-base', '--is-ancestor', a, b); return true; } catch { return false; } };
@@ -176,7 +176,7 @@ async function main() {
     try { stdin = readFileSync(0, 'utf8'); } catch { return; }
     for (const r of refsFromPrePush(stdin, { hasCommit })) {
       const args = [fileURLToPath(import.meta.url), '--after-push', '--branch', r.branch, '--sha', r.sha, '--range', r.range, ...(o.repo ? ['--repo', o.repo] : [])];
-      spawn(process.execPath, args, { detached: true, stdio: 'ignore' }).unref();
+      spawn(process.execPath, args, { detached: true, stdio: 'ignore', windowsHide: true }).unref();
     }
     return;
   }

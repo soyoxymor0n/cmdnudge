@@ -55,7 +55,7 @@ export function parseRepo(url) {
 export function resolveRepo(repo, { env = process.env, getRemote } = {}) {
   if (repo) return repo;
   if (env.GITHUB_REPOSITORY) return env.GITHUB_REPOSITORY;
-  const remote = (getRemote ?? (() => execFileSync('git', ['remote', 'get-url', 'origin'], { encoding: 'utf8' })))();
+  const remote = (getRemote ?? (() => execFileSync('git', ['remote', 'get-url', 'origin'], { encoding: 'utf8', windowsHide: true })))();
   const parsed = parseRepo(remote);
   if (!parsed) throw new Error('gh-rest: cannot work out owner/repo; pass --repo');
   return parsed;
